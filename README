@@ -1,3 +1,13 @@
+DeSNP Pipeline Tools
+January 9, 2012
+
+
+This project is a toolkit for the Center of Genome Dynamics for "desnping" 
+probes for a given set of strains within an experiment.  Initially this 
+has been written to work with microarray data, but should work ultimately
+with RNA Seq expression experiments as well.
+
+
 DeSNP Dependencies
 
 samtools
