@@ -9,6 +9,21 @@ This probram is intended for summarizing probe data so that it can
 be passed on to the GEM database and application for mining and more
 advanced analysis.
 
+  Copyright (c) 2012 The Jackson Laboratory
+  
+  This is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+ 
+  This software is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+ 
+  You should have received a copy of the GNU General Public License
+  along with this software.  If not, see <http://www.gnu.org/licenses/>.
+
 """
 import sys
 import getopt
@@ -213,7 +228,7 @@ def main():
     try:
         optlist, args = getopt.getopt(sys.argv[1:],
                                       'g:hlo:vz:',
-                                      ['group','help','log','out','verbose','zip'])
+                                      ['group=','help','log','out=','verbose','zip='])
     except getopt.GetoptError, exc:
         # print help info
         usage()
