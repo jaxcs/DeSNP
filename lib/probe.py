@@ -76,10 +76,16 @@ class Probe:
         self.chromosome = value
         
     def setProbeStart(self,value):
-        self.probe_start = int(value)
+	try:
+            self.probe_start = int(value)
+        except ValueError:
+            pass
         
     def setProbeEnd(self,value):
-        self.probe_end = int(value)
+        try:
+            self.probe_end = int(value)
+        except:
+            pass
         
     def setSequence(self,value):
         self.sequence = value
@@ -109,10 +115,16 @@ class Probe:
         self.name = value
         
     def setStart(self,value):
-        self.start_pos = int(value)
+        try:
+            self.start_pos = int(value)
+        except:
+            pass
         
     def setEnd(self,value):
-        self.end_pos = int(value)
+        try:
+            self.end_pos = int(value)
+        except:
+            pass
         
     def setIntensities(self, values):
         self.intensities = values
@@ -195,10 +207,16 @@ class ProbeSet:
         self.chromosome = value
         
     def setStart(self,value):
-        self.start_pos = int(value)
+        try:
+            self.start_pos = int(value)
+        except:
+            pass
         
     def setEnd(self,value):
-        self.end_pos = int(value)
+        try:
+            self.end_pos = int(value)
+        except:
+            pass
         
     def setStrand(self,value):
         self.strand = value
