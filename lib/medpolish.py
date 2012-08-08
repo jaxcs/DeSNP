@@ -31,8 +31,8 @@ class MedPolish:
 def medpolish(x, eps=0.01, maxiter=10):
     nr, nc = x.shape
     t = 0
-    r = nr
-    c = nc
+    r = np.repeat(0, nr)
+    c = np.repeat(0, nc)
     oldsum = 0
     for iter in range(0, maxiter):
         rdelta = np.median(x, 1)
@@ -55,3 +55,13 @@ def medpolish(x, eps=0.01, maxiter=10):
             oldsum = newsum
     
     return MedPolish(t, r, c, x)
+
+def adjustedMedpolish(x, esp=0.01, maxiter=10):
+    mp = medpolish(x, esp, maxiter)
+    nu_col = mp.col
+    for i in range(0, len(nu_col)):
+        nu_col[i] = nu_col[i] + mp.overall
+    mp.col = nu_col
+    return mp
+
+
