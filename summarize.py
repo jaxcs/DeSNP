@@ -183,7 +183,7 @@ def groupProbesetsByGene(probes):
     groups_processed = 0
     for group in groupings:
         matrix = group.getProbeNPMatrix()
-        medp_result = mp.medpolish(matrix)
+        medp_result = mp.adjustedMedpolish(matrix)
         group.setIntensities(medp_result.col)
         groups_processed += 1
         if verbose:
