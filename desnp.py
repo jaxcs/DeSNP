@@ -584,7 +584,6 @@ def main():
         # Otherwise we'll just write back out to stdout
         writer_fd = sys.stdout
     writer = csv.writer(writer_fd, delimiter=delim)
-        
     # This file will contain our probes that were rejected because of
     # variances/SNPs in between our selected strains
     rv_file_name = SNP_PROBE_FILE
@@ -624,8 +623,8 @@ def main():
         try:
             CHRS.index(probe.chromosome)
         except ValueError:
-            logging.warning("Chr " + probe.chromosome + " not supported.  " +
-                         "Keeping probe... " + probe.id)
+            logging.warning("Chr " + str(probe.chromosome) + " not supported.  " +
+                         "Keeping probe... " + str(probe.id))
             writer.writerow(probe.asList())
             written_probes += 1
             continue
