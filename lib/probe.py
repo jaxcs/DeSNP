@@ -171,6 +171,7 @@ class ProbeSet:
     strand = None
     probes = None
     intensities = None
+    sampleNames = None
     
     def __init__(self, tokens, header):
         # Below is my replacement for Python not have a switch/case
@@ -237,6 +238,9 @@ class ProbeSet:
         np_array = np.array(intensity_array)
         return np_array
 
+    def setSampleNames(self, samples):
+        self.sampleNames = samples
+
     
     def headList(self):
         list = ['MGI ID', 'MGI Symbol', 'MGI Name', 'Chr', 'Start', 
@@ -247,7 +251,10 @@ class ProbeSet:
         # so we have column for column match of samples and intensity
         # values
         if len(self.intensities) > 0:
-            list.append("Sample Intensities")
+            if self.sampleNames:
+                list = list + self.sampleNames
+            else:
+                list.append("Sample Intensities")
             
         return list
         

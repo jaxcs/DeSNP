@@ -110,6 +110,19 @@ def getProbes(probe_fd):
         logging.info("Loaded " + str(len(probe_ids)) + " probes.")
     return probes
 
+def getSampleNames(sample_fd):
+    reader = csv.reader(sample_fd, delimiter="\t")
+    samples = []
+    first = True
+    sample_col = 0
+    for line in reader:
+        if first:
+            sample_col = line.index("sampleid")
+            first = False
+        else:
+            samples.append(line[sample_col])
+    return samples
+
 def addProbeData(probes, data_fd):
     keys = probes.keys()
     reader = csv.reader(data_fd, delimiter="\t")
@@ -147,7 +160,7 @@ def getIntensityMatrix(probes):
     y = np.array(x).astype(np.int32)
     return y
 
-def groupProbesetsByGene(probes):
+def groupProbesetsByGene(probes, samples):
     groupings = None
     # Currently we are only grouping by Gene.  If we add another level of 
     # Grouping later we should either break out in another function, or
@@ -170,8 +183,10 @@ def groupProbesetsByGene(probes):
             group_header = ['MGI ID', 'MGI Symbol', 'MGI Name', 'Chr',
                             'Start', 'End', 'Strand']
             group = ProbeSet(group_values, group_header)
+            group.setSampleNames(samples)
             group.addProbe(probe)
             groupings_dict[probe.mgi_id] = group
+
 
     groupings = groupings_dict.values()
     if verbose:
@@ -222,6 +237,9 @@ Usage of this program can be found in program header and by running:
   
   First pass we'll assume that we are processing for only the probes in the
   "probes_filtered.tsv" file.
+
+  Also requiring that the samples.tsv file be present for assigning names for
+  sample columns.
 """
 def main():
     global verbose, probe_ids
@@ -302,6 +320,7 @@ def main():
     zip = None
     probe_fd = None
     data_fd = None
+    sample_fd = None
     
     if zipfile.is_zipfile(input_file_name):
         zip = zipfile.ZipFile(input_file_name, 'r')
@@ -316,6 +335,12 @@ def main():
         except KeyError:
             logging.error("Error: file data.tsv does not exist in zip: " +
                              input_file_name)
+            sys.exit(1)
+        try:
+            sample_fd = zip.open('samples.tsv', 'r')
+        except KeyError:
+            logging.error("Error: file samples.tsv does not exist in zip: " +
+                            input_file_name)
             sys.exit(1)
     else:
         logging.error(input_file_name + " is not a valid zip file!")
@@ -336,6 +361,9 @@ def main():
         
     # Get our set of filtered probes
     probes = getProbes(probe_fd)
+
+    # Get our set of sample names
+    samples = getSampleNames(sample_fd)
 
     # Add the intensity data to the probe objects
     addProbeData(probes, data_fd)
@@ -360,7 +388,7 @@ def main():
 
     # Create our groupings and write the the statistics file
     if group != 'probe':
-        groupings = groupProbesetsByGene(probes)
+        groupings = groupProbesetsByGene(probes, samples)
         group_count = len(groupings)
         sorted(groupings, key=lambda group: (group.chromosome, group.start_pos))
         first=True
