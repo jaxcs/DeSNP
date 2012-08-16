@@ -1,4 +1,5 @@
 DeSNP Pipeline Tools
+====================================
 January 9, 2012
 Dave Walton - The Jackson Laboratory
 
@@ -17,9 +18,11 @@ Dave Walton - The Jackson Laboratory
   You should have received a copy of the GNU General Public License
   along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-OVERVIEW
 
-This project is a toolkit from the Center of Genome Dynamics at the Jackson Laboratory for "desnping" probes for a given set of strains within an experiment.  Initially this has been written to work with microarray data, but should work ultimately with HTS RNA Seq expression experiments as well.
+OVERVIEW
+---------------
+
+This project is a toolkit from the [Center of Genome Dynamics(CGD)](http://cgd.jax.org/) at the [Jackson Laboratory](http://www.jax.org/) for "desnping" probes for a given set of strains within an experiment.  Initially this has been written to work with microarray data, but should work ultimately with HTS RNA Seq expression experiments as well.
 
 In brief, the program takes a set of Probes, and a set of strain samples, and then uses one of two SNP references (Sanger's VCF format file or the CGD Sanger UNC Imputed SNPs) to identify all probes that have a SNP within one of the selected strains.  These probes are "desnped" from the dataset.  
 
