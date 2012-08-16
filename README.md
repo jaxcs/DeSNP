@@ -61,6 +61,7 @@ The "strain/SNP" column of the probes_snp.tsv file is formated:
      ... StrainN Allele, StrainN conf. 
 
 BASIC DATA SUMMARIZATION
+---------------
 
 This project also include a program (summarize.py) that takes the output from the desnp program and does some basic grouping and summarization.  Currently the program can group by probe (no grouping) or gene (groups by MGI ID Gene id).  In all cases a log2 transform and quantile normalization is run against a matrix of intensity values.  As we've mentioned before the MooseDB zip file includes 3 files.  One of these files is data.tsv.  This includes the intensity values for the probes in probes.tsv and the strains in samples.tsv.  The program uses the probes_filtered.tsv file to select the set of probes for which summary statistics will be run.  If "gene" grouping is being done, an addidtional step is added where the probes are grouped, and then a median polish is run on these groups to get one intensity value for each group for each sample.  This program adds an additional file to the MooseDB Zip named statistics.tsv.  This contains several columns of annotation information for each group and then appends the summarized intensity values to the row of data.
 
@@ -80,6 +81,7 @@ USAGE of summarize.py program:
 
 
 DEPENDENCIES
+---------------
 
 python 2.6 or newer
 pysam
@@ -89,37 +91,38 @@ SNP reference.  Either:
   Sanger VCF SNP file available at: 
 
 EXAMPLE
+---------------
 
 To get a list of valid strains from a SNP Reference file:
 
-./desnp.py -l -z ../test_data/MOOSE_db_Little.zip -g ../test_data/Sanger.UNC.Combined.SNPs.txt.gz -r
+    ./desnp.py -l -z ../test_data/MOOSE_db_Little.zip -g ../test_data/Sanger.UNC.Combined.SNPs.txt.gz -r
 
 To process a moose db zip file and write the results to a desnp.log file:
 
-./desnp.py -l -z ../test_data/MOOSE_db_Little.zip -g ../test_data/new.Sanger.UNC.Combined.SNPs.txt.gz -s "C57BL/6J:NZOH1J"
+    ./desnp.py -l -z ../test_data/MOOSE_db_Little.zip -g ../test_data/new.Sanger.UNC.Combined.SNPs.txt.gz "C57BL/6J:NZOH1J"
 
 To summarize the results of the above command, group by gene and write messages to log:
 
-./summarize.py -g gene -z ../test_data/MOOSE_db_Little.zip  -l
+    ./summarize.py -g gene -z ../test_data/MOOSE_db_Little.zip  -l
 
 
 If you were running these in an HPC compute enviroment using torque/moab, below is an example script that you could use to submit to the custer:
 
-#!/bin/bash
+    #!/bin/bash
+    
+    #PBS -l nodes=1:ppn=1,walltime=3:00:00
+    #PBS -q batch
+    #PBS -m e
+    #PBS -M your.email@your.domain
+    
+    cd $PBS_O_WORKDIR
+    
+    module load Python
+    
+    cp /where/DeSNP-1.0/installed/desnp.conf .
+    export PYTHONPATH=/where/DeSNP-1.0/installed/lib
+    /where/DeSNP-1.0/installed/desnp.py --log --zip MOOSEDB_download.zip --gzipsnp Sanger.UNC.Combined.SNPs.20120301.txt.gz --strains 129S1/SvImJ:CE/J
 
-#PBS -l nodes=1:ppn=1,walltime=3:00:00
-#PBS -q batch
-#PBS -m e
-#PBS -M your.email@your.domain
-
-cd $PBS_O_WORKDIR
-
-module load Python
-
-cp /where/DeSNP-1.0/installed/desnp.conf .
-export PYTHONPATH=/where/DeSNP-1.0/installed/lib
-/where/DeSNP-1.0/installed/desnp.py --log --zip MOOSEDB_download.zip --gzipsnp Sanger.UNC.Combined.SNPs.20120301.txt.gz --strains 129S1/SvImJ:CE/J
-
-/where/DeSNP-1.0/installed/summarize.py --log --group gene --zip /MOOSEDB_download.zip 
-#end PBS script
+    /where/DeSNP-1.0/installed/summarize.py --log --group gene --zip /MOOSEDB_download.zip 
+    #end PBS script
 
