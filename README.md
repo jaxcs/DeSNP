@@ -29,14 +29,14 @@ In brief, the program takes a set of Probes, and a set of strain samples, and th
 The program was designed to work with the output from MooseDB (moosedb.jax.org), which produces a zip file that contains several tab delimited files associated with a micro array experiment.  Currently the zip file contains the following files: probes.tsv, samples.tsv and data.tsv.  The DeSNP program only uses the probes.tsv file.   If the program is used with a moosedb zip file, then the results "probes_filtered.tsv" and "probes_snp.tsv" are added to the original zip file.  The former is as the name suggests, the filtered set of probes, the latter are only those probes that had snps within the set of strains, with an extra column added to everyrow with the identification of the strain and location of each SNP.
 
 The "strain/SNP" column of the probes_snp.tsv file is formated:
-   strain1;strain2;strain3;...;strainN
+    strain1;strain2;strain3;...;strainN
  for the header and:
-   0:1;1;;...;0:2
+    0:1;1;;...;0:2
  where under each strain is the colon separated list of positions with a SNP for that strain, empty string where there are no SNPs for the strain.
 
  USAGE of desnp.py program:
-  ./desnp.py [OPTIONS] -f <probes.txt> -g <snps.gz> -s <strains> (1st form)
-  ./desnp.py [OPTIONS] -z <probes.zip> -g <snps.gz> -s <strains> (2nd form)
+    ./desnp.py [OPTIONS] -f <probes.txt> -g <snps.gz> -s <strains> (1st form)
+    ./desnp.py [OPTIONS] -z <probes.zip> -g <snps.gz> -s <strains> (2nd form)
  
  OPTIONS:
     -c, --comma    the probe file is comma delimited
