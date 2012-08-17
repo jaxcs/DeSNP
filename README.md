@@ -22,11 +22,20 @@ Dave Walton - The Jackson Laboratory
 OVERVIEW
 ---------------
 
-This project is a toolkit from the [Center of Genome Dynamics(CGD)](http://cgd.jax.org/) at the [Jackson Laboratory](http://www.jax.org/) for "desnping" probes for a given set of strains within an experiment.  Initially this has been written to work with microarray data, but should work ultimately with HTS RNA Seq expression experiments as well.
+This project is a toolkit from the [Center of Genome Dynamics(CGD)](http://cgd.jax.org/) at the [Jackson Laboratory](http://www.jax.org/) for "desnping" probes for a given set of strains within an experiment.  Initially this has been written to work with microarray data, but should work ultimately with HTS RNA Seq expression experiments as well.  The project contains two main components `desnp.py` and `summarize.py`.  The desnp program is used for the actual "desnping" process and the summarize program provides some basic summary statistics.
 
-In brief, the program takes a set of Probes, and a set of strain samples, and then uses one of two SNP references (Sanger's VCF format file or the CGD Sanger UNC Imputed SNPs) to identify all probes that have a SNP within one of the selected strains.  These probes are "desnped" from the dataset.  
+DeSNPing
+---------------
 
-The program was designed to work with the output from MooseDB (moosedb.jax.org), which produces a zip file that contains several tab delimited files associated with a micro array experiment.  Currently the zip file contains the following files: probes.tsv, samples.tsv and data.tsv.  The DeSNP program only uses the probes.tsv file.   If the program is used with a moosedb zip file, then the results "probes_filtered.tsv" and "probes_snp.tsv" are added to the original zip file.  The former is as the name suggests, the filtered set of probes, the latter are only those probes that had snps within the set of strains, with an extra column added to everyrow with the identification of the strain and location of each SNP.
+In brief, the desnp program takes a set of Probes, and a set of strain samples, and then uses one of two SNP references (Sanger's VCF format file or the CGD Sanger UNC Imputed SNPs) to identify all probes that have a SNP within any of the selected strains.  These probes are "desnped" from the dataset.  
+
+The program was designed to work with the output from MooseDB (moosedb.jax.org), which produces a zip file that contains several tab delimited files associated with a micro array experiment.  Currently the zip file contains the following files: probes.tsv, samples.tsv and data.tsv.  The DeSNP program only uses the probes.tsv file.   If the program is used with a moosedb zip file, then the results `probes_filtered.tsv` and `probes_snp.tsv` are added to the original zip file.  The former is, as the name suggests, the filtered set of probes. The latter are only those probes that had snps within the set of strains, with an extra column added to every row with the identification of the strain and location of each SNP.  A user may also run `desnp.py` with a user provided text file, that can be comma or tab delimited.  For this option the user must include a set of mandatory columns:
+
+    id, Chr, Probe Start, Probe End
+    
+The full set of columns that MooseDB's `probe.tsv` file provides includes, and will be returned in output if provided:
+
+    id, Probe ID, Sequence, Probe Start, Probe End, MGI ID, MGI Symbol, MGI Name, Chr, Start, End , Strand
 
 The "strain/SNP" column of the probes_snp.tsv file is formated:
 
@@ -38,7 +47,7 @@ The "strain/SNP" column of the probes_snp.tsv file is formated:
     
  where under each strain is the colon separated list of positions with a SNP for that strain, empty string where there are no SNPs for the strain.
 
- USAGE of desnp.py program:
+ USAGE of `desnp.py` program:
  
     ./desnp.py [OPTIONS] -f <probes.txt> -g <snps.gz> -s <strains> (1st form)
     ./desnp.py [OPTIONS] -z <probes.zip> -g <snps.gz> -s <strains> (2nd form)
@@ -62,23 +71,23 @@ The "strain/SNP" column of the probes_snp.tsv file is formated:
     -z, --zip      a zip containing the probe file. This also assumes there is a
                    file in the zip named probes.tsv, and the file is --tab
  
-   *CGD SNP File format: Tab delimited file containing the following columns
+    *CGD SNP File format: Tab delimited file containing the following columns
      SNPID, CHROM, POS, REF, ALT, Strain1 Allele, Strain1 confidence,
      ... StrainN Allele, StrainN conf. 
 
 BASIC DATA SUMMARIZATION
 ---------------
 
-This project also include a program (summarize.py) that takes the output from the desnp program and does some basic grouping and summarization.  Currently the program can group by probe (no grouping) or gene (groups by MGI ID Gene id).  In all cases a log2 transform and quantile normalization is run against a matrix of intensity values.  As we've mentioned before the MooseDB zip file includes 3 files.  One of these files is data.tsv.  This includes the intensity values for the probes in probes.tsv and the strains in samples.tsv.  The program uses the probes_filtered.tsv file to select the set of probes for which summary statistics will be run.  If "gene" grouping is being done, an addidtional step is added where the probes are grouped, and then a median polish is run on these groups to get one intensity value for each group for each sample.  This program adds an additional file to the MooseDB Zip named statistics.tsv.  This contains several columns of annotation information for each group and then appends the summarized intensity values to the row of data.
+This project also include a program `summarize.py` that takes the output from the desnp program and does some basic grouping and summarization.  Currently the program can group by probe (no grouping) or gene (groups by MGI ID Gene id).  In all cases a log2 transform and quantile normalization is run against a matrix of intensity values.  As we've mentioned before the MooseDB zip file includes 3 files.  One of these files is data.tsv.  This includes the intensity values for the probes in probes.tsv and the strains in samples.tsv.  The program uses the probes_filtered.tsv file to select the set of probes for which summary statistics will be run.  If "gene" grouping is being done, an addidtional step is added where the probes are grouped, and then a median polish is run on these groups to get one intensity value for each group for each sample.  This program adds an additional file to the MooseDB Zip named statistics.tsv.  This contains several columns of annotation information for each group and then appends the summarized intensity values to the row of data.
 
-USAGE of summarize.py program:
+USAGE of `summarize.py` program:
 
     ./summarize.py [OPTIONS] -z <moosedb.zip> 
     
   OPTIONS:
   
     -g, --group    how to group probe sets, options are 'probe', 'gene'(default)
-    -h, --help     return this message\n\n", \
+    -h, --help     return this message
     -l, --log      same as verbose but sends diagnostics to desnp.log
     -o, --out      the name of the output file the results will go to
     -v, --verbose  show informational messages
