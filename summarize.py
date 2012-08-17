@@ -47,6 +47,13 @@ __date__="$Feb 10, 2012 08:00:00 AM$"
 #  This list is used to keep the order we read our probes in.
 probe_ids = []
 
+# When we run against the Moosedb SNP file, we make certain assumptions about 
+# naming conventions of files in the zip.  We will first look for a desnp.conf
+# file.  If it does not exist, then we use the defaults below.
+PROBE_FILE = "filtered_probes.tsv"
+SAMPLE_FILE = "samples.tsv"
+DATA_FILE = "data.tsv"
+
 """
 usage() method prints valid parameters to program.
 """
@@ -242,7 +249,7 @@ Usage of this program can be found in program header and by running:
   sample columns.
 """
 def main():
-    global verbose, probe_ids
+    global PROBE_FILE, SAMPLE_FILE, DATA_FILE, verbose, probe_ids
     try:
         optlist, args = getopt.getopt(sys.argv[1:],
                                       'g:hlo:vz:',
@@ -263,6 +270,25 @@ def main():
     input_file_name = ""
     out_file_name   = ""
     
+    #  See if desnp.conf file exists
+    if os.path.exists("desnp.conf") and os.path.isfile("desnp.conf"):
+        conf = open("desnp.conf",'r')
+        line = conf.readline()
+        parameters = {}
+        while (line):
+            (key,value) = line.split("=")
+            key = key.strip()
+            value = value.strip()
+            parameters[key] = value
+            line = conf.readline()
+        if parameters.has_key("SAMPLE_FILE"):
+            SAMPLE_FILE = parameters["SAMPLE_FILE"]
+        if parameters.has_key("FILTERED_PROBE_FILE"):
+            PROBE_FILE = parameters["FILTERED_PROBE_FILE"]
+        if parameters.has_key("DATA_FILE"):
+            DATA_FILE = parameters["DATA_FILE"]
+
+
     for opt, arg in optlist:
         if opt in ("-h", "--help"):
             usage()
@@ -325,19 +351,19 @@ def main():
     if zipfile.is_zipfile(input_file_name):
         zip = zipfile.ZipFile(input_file_name, 'r')
         try:
-            probe_fd = zip.open('probes_filtered.tsv', 'r')
+            probe_fd = zip.open(PROBE_FILE, 'r')
         except KeyError:
             logging.error("File probes_filtered.tsv does not exist " +\
                              "in zip: " + input_file_name)
             sys.exit(1)
         try:
-            data_fd = zip.open('data.tsv','r')
+            data_fd = zip.open(DATA_FILE,'r')
         except KeyError:
             logging.error("Error: file data.tsv does not exist in zip: " +
                              input_file_name)
             sys.exit(1)
         try:
-            sample_fd = zip.open('samples.tsv', 'r')
+            sample_fd = zip.open(SAMPLE_FILE, 'r')
         except KeyError:
             logging.error("Error: file samples.tsv does not exist in zip: " +
                             input_file_name)
