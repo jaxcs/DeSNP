@@ -41,7 +41,8 @@ class Probe:
     end_pos = None
     strand = None
     intensities = None
-    
+    sampleNames = None
+
     def __init__(self, tokens, header):
         # Below is my replacement for Python not have a switch/case
         # statement
@@ -128,6 +129,9 @@ class Probe:
         
     def setIntensities(self, values):
         self.intensities = values
+
+    def setSampleNames(self, samples):
+        self.sampleNames = samples
     
     def headList(self):
         list = ['id', 'Probe ID', 'ProbeSet ID', 'Sequence', 
@@ -139,7 +143,10 @@ class Probe:
         # so we have column for column match of samples and intensity
         # values
         if len(self.intensities) > 0:
-            list.append("Sample Intensities")
+            if self.sampleNames:
+                list = list + self.sampleNames
+            else:
+                list.append("Sample Intensities")
             
         return list
         
