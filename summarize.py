@@ -26,6 +26,7 @@ advanced analysis.
 
 """
 import sys
+import os
 import getopt
 import logging
 import time
@@ -438,7 +439,6 @@ def main():
     writer_fd.flush()
     #logging.debug("Writing " + out_file_name + " into " + input_file_name)
     zipResults(input_file_name, out_file_name)
-    import os
     os.remove(out_file_name)
 
     if verbose:
