@@ -35,7 +35,7 @@ The program was designed to work with the output from MooseDB (moosedb.jax.org),
     
 The full set of columns that MooseDB's `probe.tsv` file provides includes, and will be returned in output if provided:
 
-    id, Probe ID, Sequence, Probe Start, Probe End, MGI ID, MGI Symbol, MGI Name, Chr, Start, End , Strand
+    id, Probe ID, ProbeSet ID, Sequence, Probe Start, Probe End, MGI ID, MGI Symbol, MGI Name, Chr, Start, End, Strand
 
 The "strain/SNP" column of the probes_snp.tsv file is formated:
 
@@ -78,8 +78,10 @@ The "strain/SNP" column of the probes_snp.tsv file is formated:
 BASIC DATA SUMMARIZATION
 ---------------
 
-This project also include a program `summarize.py` that takes the output from the desnp program and does some basic grouping and summarization.  Currently the program can group by probe (no grouping) or gene (groups by MGI ID Gene id).  In all cases a log2 transform and quantile normalization is run against a matrix of intensity values.  As we've mentioned before the MooseDB zip file includes 3 files.  One of these files is data.tsv.  This includes the intensity values for the probes in probes.tsv and the strains in samples.tsv.  The program uses the probes_filtered.tsv file to select the set of probes for which summary statistics will be run.  If "gene" grouping is being done, an addidtional step is added where the probes are grouped, and then a median polish is run on these groups to get one intensity value for each group for each sample.  This program adds an additional file to the MooseDB Zip named statistics.tsv.  This contains several columns of annotation information for each group and then appends the summarized intensity values to the row of data.
+This project also include a program `summarize.py` that takes the output from the desnp program and does some basic grouping and summarization.  Currently the program can group by probe (no grouping) or gene (groups by MGI ID Gene id).  In all cases a *log2 transform* and *quantile normalization* are run against a matrix of intensity values.  As we've mentioned before the MooseDB zip file includes 3 files.  One of these files is `data.tsv`.  This includes the intensity values for the probes in `probes.tsv` and the strains in `samples.tsv`.  The program uses the `probes_filtered.tsv` file to select the set of probes for which summary statistics will be run.  If "gene" grouping is being done, an addidtional step is added where the probes are grouped, and then a *median polish* is run on these groups to get one intensity value for each group for each sample.  This program adds an additional file to the MooseDB Zip named `statistics.tsv`.  This contains several columns of annotation information for each group and then appends the summarized intensity values to the row of data.  The column names for the summarized intensity values are taken from the `samples.tsv` files `sampleid` column.  If you are trying to run this tool from data files other than the ones generated from MooseDB
 
+    id, ProbeSet ID, MGI ID, MGI Symbol, MGI Name, Chr, Start, End, Strand
+    
 USAGE of `summarize.py` program:
 
     ./summarize.py [OPTIONS] -z <moosedb.zip> 
@@ -117,7 +119,7 @@ To get a list of valid strains from a SNP Reference file:
 
 To process a moose db zip file and write the results to a desnp.log file:
 
-    ./desnp.py -l -z ../test_data/MOOSE_db_Little.zip -g ../test_data/new.Sanger.UNC.Combined.SNPs.txt.gz "C57BL/6J:NZOH1J"
+    ./desnp.py -l -z ../test_data/MOOSE_db_Little.zip -g ../test_data/Sanger.UNC.Combined.SNPs.txt.gz "C57BL/6J:NZOH1J"
 
 To summarize the results of the above command, group by gene and write messages to log:
 
