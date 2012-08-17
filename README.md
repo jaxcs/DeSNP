@@ -84,7 +84,8 @@ This project also include a program `summarize.py` that takes the output from th
     
 USAGE of `summarize.py` program:
 
-    ./summarize.py [OPTIONS] -z <moosedb.zip> 
+    ./summarize.py [OPTIONS] -z <moosedb.zip> (1st form)
+    ./summarize.py [OPTIONS] -p <probes.tsv> -s <samples.tsv> -d <data.tsv> (2nd form)
     
   OPTIONS:
   
@@ -98,6 +99,9 @@ USAGE of `summarize.py` program:
                    probes.tsv or probes_filtered.tsv
                    data.tsv
                    samples.tsv
+     -p, --probe    The file containing the probes to be summarized (don't use with -z)
+     -d, --data     The matix of intensity data (don't use with -z)
+     -s, --sample   The design file containing the samples (don't use with -z)
 
 
 DEPENDENCIES
