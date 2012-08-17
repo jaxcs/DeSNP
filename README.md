@@ -119,7 +119,7 @@ To get a list of valid strains from a SNP Reference file:
 
 To process a moose db zip file and write the results to a desnp.log file:
 
-    ./desnp.py -l -z ../test_data/MOOSE_db_Little.zip -g ../test_data/Sanger.UNC.Combined.SNPs.txt.gz "C57BL/6J:NZOH1J"
+    ./desnp.py -l -z ../test_data/MOOSE_db_Little.zip -g ../test_data/Sanger.UNC.Combined.SNPs.txt.gz -s 129S1/SvImJ:CE/J
 
 To summarize the results of the above command, group by gene and write messages to log:
 
