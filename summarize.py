@@ -60,7 +60,8 @@ usage() method prints valid parameters to program.
 """
 def usage():
     print "Usage: \n    ", sys.argv[0],\
-        "[OPTIONS] -z <probes.zip> \n",\
+        "[OPTIONS] -z <probes.zip> (1st form)\n    ",\
+        sys.argv[0], "[OPTIONS] -p <probes.tsv> -s <samples.tsv> -d <data.tsv> (2nd form)\n",\
         "OPTIONS:\n", \
         "    -g, --group    how to group probe sets, options are 'probe', 'gene' (default)\n\n",\
         "    -h, --help     return this message\n\n", \
@@ -71,7 +72,10 @@ def usage():
         "                   This assumes there are the following files in the zip:\n",\
         "                     probes.tsv or probes_filtered.tsv\n",\
         "                     data.tsv\n",\
-        "                     samples.tsv\n\n"
+        "                     samples.tsv\n\n",\
+        "    -p, --probe    The file containing the probes to be summarized (don't use with -z)\n\n",\
+        "    -d, --data     The matix of intensity data (don't use with -z)\n\n",\
+        "    -s, --sample   The design file containing the samples (don't use with -z)\n\n"
 
 """
 quantnorm() is a method for doing quantile normalization.
@@ -230,7 +234,7 @@ def zipResults(zip_source_file, summary_file):
         src_zip = zipfile.ZipFile(zip_source_file, 'a')
     else:
         logging.error(zip_source_file + " is not a valid zip file!")
-        system.exit(1)
+        sys.exit(1)
         
     src_zip.write(summary_file)
     if verbose:
@@ -253,8 +257,8 @@ def main():
     global PROBE_FILE, SAMPLE_FILE, DATA_FILE, verbose, probe_ids
     try:
         optlist, args = getopt.getopt(sys.argv[1:],
-                                      'g:hlo:vz:',
-                                      ['group=','help','log','out=','verbose','zip='])
+                                      'g:hlo:vz:p:s:d:',
+                                      ['group=','help','log','out=','verbose','zip=','probe=','sample=','data='])
     except getopt.GetoptError, exc:
         # print help info
         usage()
@@ -289,7 +293,8 @@ def main():
         if parameters.has_key("DATA_FILE"):
             DATA_FILE = parameters["DATA_FILE"]
 
-
+    zip_used = False
+    nonzip_used = False
     for opt, arg in optlist:
         if opt in ("-h", "--help"):
             usage()
@@ -306,10 +311,20 @@ def main():
         elif opt in ("-l", "--log"):
             log = True
         elif opt in ("-z", "--zip"):
+            zip_used = True
             input_file_name = arg
             delim = '\t'
         elif opt in ("-o", "--out"):
             out_file_name = arg
+        elif opt in ("-p", "--probe"):
+            nonzip_used = True
+            PROBE_FILE = arg
+        elif opt in ("-s", "--sample"):
+            nonzip_used = True
+            SAMPLE_FILE = arg
+        elif opt in ("-d", "--data"):
+            nonzip_used = True
+            DATA_FILE = arg
             
     # If "log" flag has been used, write diagnostics to summarize.log 
     if log:
@@ -326,6 +341,11 @@ def main():
             filemode='w',
             level=logging.ERROR)
     
+    if nonzip_used and zip_used:
+        logging.error("Zip file option (-z) cannot be used with explicit naming of files (-p, -d & -s).\n" +
+            "Either pass the file inside a zip, or individually from the command line.")
+        usage()
+        sys.exit(1)
     if verbose:
         logging.info("Zip file = " + input_file_name)
         if log:
@@ -333,8 +353,10 @@ def main():
         if out_file_name:
             logging.info("Output will be written to: " + out_file_name)
 
-    if input_file_name == '':
-        logging.error("Zip file required parameter!\n")
+    logging.info(" ZIP = " + str(zip_used))
+    logging.info(" No ZIP = " + str(nonzip_used))
+    if not zip_used and not nonzip_used:
+        logging.error("Zip file required parameter, or you must explicitly name input files!\n")
         usage()
         sys.exit(1)
         
@@ -349,7 +371,8 @@ def main():
     data_fd = None
     sample_fd = None
     
-    if zipfile.is_zipfile(input_file_name):
+    
+    if zip_used and zipfile.is_zipfile(input_file_name):
         zip = zipfile.ZipFile(input_file_name, 'r')
         try:
             probe_fd = zip.open(PROBE_FILE, 'r')
@@ -369,10 +392,28 @@ def main():
             logging.error("Error: file samples.tsv does not exist in zip: " +
                             input_file_name)
             sys.exit(1)
-    else:
+    elif zip_used:
         logging.error(input_file_name + " is not a valid zip file!")
-        system.exit(1)
-        
+        sys.exit(1)
+    else:
+        try:
+            probe_fd = open(PROBE_FILE, 'r')
+        except IOError:
+            logging.error("Error: Problem trying to open probe file: " + PROBE_FILE)
+            sys.exit(1)
+        try:
+            data_fd = open(DATA_FILE,'r')
+        except IOError:
+            logging.error("Error: Problem trying to open data file: " +
+                             DATA_FILE)
+            sys.exit(1)
+        try:
+            sample_fd = open(SAMPLE_FILE, 'r')
+        except IOError:
+            logging.error("Error: Problem trying to open sample file: " +
+                             DATA_FILE)
+            sys.exit(1)
+
     #  Default is that writer will write to standard out
     writer = None
     writer_fd = None
@@ -438,8 +479,9 @@ def main():
 
     writer_fd.flush()
     #logging.debug("Writing " + out_file_name + " into " + input_file_name)
-    zipResults(input_file_name, out_file_name)
-    os.remove(out_file_name)
+    if zip_used:
+        zipResults(input_file_name, out_file_name)
+        os.remove(out_file_name)
 
     if verbose:
         logging.info("finished processing at: " + time.strftime("%H:%M:%S") +
