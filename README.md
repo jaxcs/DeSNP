@@ -22,7 +22,24 @@ Dave Walton - The Jackson Laboratory
 OVERVIEW
 ---------------
 
-This project is a toolkit from the [Center of Genome Dynamics(CGD)](http://cgd.jax.org/) at the [Jackson Laboratory](http://www.jax.org/) for "desnping" probes for a given set of strains within an experiment.  Initially this has been written to work with microarray data, but should work ultimately with HTS RNA Seq expression experiments as well.  The project contains two main components `desnp.py` and `summarize.py`.  The desnp program is used for the actual "desnping" process and the summarize program provides some basic summary statistics.
+This project is a toolkit from the [Center of Genome Dynamics(CGD)](http://cgd.jax.org/) at the [Jackson Laboratory](http://www.jax.org/).  For our purposes "desnping" involves taking a list of probes (e.g. all probes from the Affy ST 1.0 platform) and a set of strains, and returning the probes that do not have a SNP within the set of strains.  In addition to desnping the toolkit provides a convenience program which will generate summary statistics for your desnped dataset.  The summarization method provides the option to group the data by probe (no grouping) or by gene.  In all cases summarization involves doing log2 and quantile normalization of the matrix of intensity values.  If the option to group by gene is selected then a median polish is applied to the gene groups.  This tool was written to work with microarray data, but should be directly applicable to RNA Seq expression experiments as well.  
+
+
+WHAT YOU NEED TO GET STARTED
+----------------------------
+
+There are several things you will need in order to run the desnping tool.  The project can be downloaded from [Insert Location Name Here](https://github.com/jaxcs/DeSNP).  The project contains two python programs as it's main components: `desnp.py` and `summarize.py`.
+
+For these programs to work from the command-line you will need:
+* Python 2.6 or 2.7
+* numpy 1.6.1
+* pysam 0.6
+* One of the annotated probe files available from [Location of probe downloads goes here](http://cgd.jax.org/)
+* The [CGD's tabix indexed Sanger/UNC Imputed SNPs](http://cgd.jax.org/tools/SNPtools.shtml) or the [Sanger VCF tabix indexed file](ftp://ftp-mouse.sanger.ac.uk/current_snps/).  In both cases be sure to download the gz and the tbi file.
+* For Summarization: The resulting filtered_probes.tsv file from running desnp.py
+* For Summarization: "samples.tsv", your tab-delimited design file with a column named "sampleid" containing the names that should be used for the sample columns in the resulting matrix.
+* For Summarization: "data.tsv", your tab-delimited data file with an id in the first column that maps to the id's in the "filtered_probes.tsv" file.
+* 
 
 DeSNPing
 ---------------
