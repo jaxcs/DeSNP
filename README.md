@@ -1,6 +1,7 @@
 DeSNP Pipeline Tools
 ====================================
-January 9, 2012
+Created: January 9, 2012
+Last Modified: September 13, 2012
 Dave Walton - The Jackson Laboratory
 
     Copyright (c) 2012 The Jackson Laboratory
