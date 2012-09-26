@@ -129,9 +129,7 @@ getProbeFDFromZip()  unzips the input file and returns the probe file
 
 This function assumes that the zipped input file is a result of a 'MooseDB'
 query/download that returns a zip containing multiple files.  One of which is
-the set of probes the user has requested in a file named 'probes.tsv'.  The file
-is assumed to be comma separated and containing the following columns:
-id,chromosome,start_pos,stop_pos,strand,probe_id,x,y,sequence
+the set of probes the user has requested in a file named 'probes.tsv'.  
 
 Returns a file descriptor to read the file named 'probes.tsv'
 """
@@ -272,13 +270,13 @@ the writer for outputing probes rejected with a variance
 and a boolean whether or not the snps are in vcf format
 
 If a snp to the reference genome is found to exist in any of the strains
-of interest this entire probe is "deSNP'd", meaning dropped from the set
-of interest.  Probes that are de-SNP'd are written to the rv_writer with an
+of interest this entire probe is "DeSNPed", meaning dropped from the set
+of interest.  Probes that are DeSNPed are written to the rv_writer with an
 extra column containing the position and strain(s) that had the snp.  The
 probes with no SNPs between strains are written to the probe_writer.
 
 The "strain/SNP" column of the RV file is formated:
-   strain1;strain2;strain3;...;strainN
+   strain1;strain2;strain3;...;
  for the header and:
    0:1;1;;...;0:2
  where under each strain is the colon separated list of positions
