@@ -166,10 +166,30 @@ def addProbeData(probes, data_fd):
 
 def getIntensityMatrix(probes):
     data = []
+    row_length = 0
+    row_num = 0
+    success = True
+    #  Iterate through probes and make sure each row has the same number of intensities.
+    #  If not, warn the user and exit, we cannot proceed with summarization.
     for probe_id in probe_ids:
+        row = probes[probe_id].intensities
+        if row_length == 0:
+            row_length = len(row)
+        elif row_length != len(row):
+            probe = probes[probe_id]
+            message = str(len(row)) + " intensities found " + str(row_length) + " expected for probe: " + \
+                probe.probe_id + ", " + probe.probeset_id + ", " + probe.sequence
+            logging.error(message)
+            sys.stderr.write(message + "\n")
+            success = False
         data.append(probes[probe_id].intensities)
-    x = np.array(data).astype(np.float)
-    y = np.array(x).astype(np.int32)
+        row_num = row_num + 1
+    if not success:
+        logging.error("Cannot proceed with summarization.  Exiting...")
+        sys.stderr.write("Cannot proceed with summarization.  Exiting...\n")
+        sys.exit(1)
+    x = np.array(data,dtype=np.float)
+    y = np.array(x, dtype=np.int32)
     return y
 
 def groupProbesetsByGene(probes, samples):
