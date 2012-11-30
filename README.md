@@ -37,29 +37,32 @@ For these programs to work from the command-line you will need:
 * Python 2.6 or 2.7
 * numpy 1.6.1
 * pysam 0.6
-* One of the annotated probe files available from [Location of probe downloads goes here](http://cgd.jax.org/)
-* The [CGD's tabix indexed Sanger/UNC Imputed SNPs](http://cgd.jax.org/tools/SNPtools.shtml) or the [Sanger VCF tabix indexed file](ftp://ftp-mouse.sanger.ac.uk/current_snps/).  In both cases be sure to download the gz and the tbi file.
+* One of:
+    * A [MooseDB](http://moosedb.jax.org/) archive file
+    * Or one of the annotated probe files available from [the DeSNP Github site](https://github.com/jaxcs/DeSNP)
+* The Sanger/UNC Imputed SNPs file [Sanger.UNC.Combined.SNPs.txt.gz and associated "tbi" file](http://cgd.jax.org/tools/SNPtools.shtml) or the [Sanger VCF tabix indexed file](ftp://ftp-mouse.sanger.ac.uk/current_snps/).  In both cases be sure to download the gz and the tbi file.
 * For Summarization: The resulting filtered_probes.tsv file from running desnp.py
-* For Summarization: "data.tsv", your tab-delimited data file with an id in the first column that maps to the id's in the "filtered_probes.tsv" file.
-* For Summarization: "samples.tsv", your tab-delimited design file with a column named "sampleid" containing the names that should be used for the sample columns in the resulting matrix.  The order of these names should be the same as the order of the columns in data.tsv.
+* For Summarization: "data.tsv", your tab-delimited data file with an id in the first column that maps to the id's in the "filtered_probes.tsv" file.  If using MooseDB this file is provided.
+* For Summarization: "samples.tsv", your tab-delimited design file with a column named "sampleid" containing the names that should be used for the sample columns in the resulting matrix.  The order of these names should be the same as the order of the columns in data.tsv. If using Moosedb this file is provided.
 
 
 How To Run
 ---------------
 
 These programs can be used in one of two ways.  The user can provide and explicitly call out all files necessary to run desnp.py and summarize.py, or they can use a compressed set of files as are provided when one pulls the data from the CGD's [MooseDB](http://moosedb.jax.org/).  The step by step shown below uses the approach of calling out each file.  I provide another simple example at the bottom that uses a zip file from MooseDB.  The next section will give full detail of all the parameters available to the two tools.
-* DeSNP a set of probes.  Assumes that all data is in the current working directory.
+* First we need to know what strains are available with our SNP Set, as selecting strains between which to "desnp" is critical:
 
-    desnp.py -l -z ../test_data/MOOSE_db_Little.zip -g ../test_data/Sanger.UNC.Combined.SNPs.txt.gz -r
+    desnp.py -v -g Sanger.UNC.Combined.SNPs.txt.gz -r
 
-* To process a moose db zip file and write the results to a desnp.log file:
+* To process a moose db zip file and write the diagnostics to a desnp.log file (we are desnping here for only 2 strains "129S1/SvImJ" and "CE/J"):
 
-    ./desnp.py -l -z ../test_data/MOOSE_db_Little.zip -g ../test_data/Sanger.UNC.Combined.SNPs.txt.gz -s 129S1/SvImJ:CE/J
+    desnp.py -l -z desnp_example.zip -g Sanger.UNC.Combined.SNPs.txt.gz -s 129S1/SvImJ:CE/J
 
-* To summarize the results of the above command, group by gene and write messages to log:
+* To summarize the results of the above command, group by gene and write messages to summarize.log:
 
-    ./summarize.py -g gene -z ../test_data/MOOSE_db_Little.zip  -l
+    summarize.py -g gene -z desnp_example.zip  -l
 
+Remember, in both the desnp and summarize examples above, the output files are added to the zip file.
 
 
 DeSNPing
