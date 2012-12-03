@@ -1,7 +1,7 @@
 DeSNP Pipeline Tools
 ====================================
     Created: January 9, 2012
-    Last Modified: September 13, 2012
+    Last Modified: December 3, 2012
     Dave Walton - The Jackson Laboratory
 
 -------------
@@ -64,9 +64,20 @@ These programs can be used in one of two ways.  The user can provide and explici
 
 Remember, in both the desnp and summarize examples above, the output files are added to the zip file.
 
+If you do not run DeSNP with the MooseDB generated zip file, the process is a little more involved, and requires you to provide input files in the proper format.  
 
-DeSNPing
----------------
+* For the DeSNP step, much like above, you will need to provide the actual probes file you want to desnp (as opposed to the MooseDB zip file that contains it), the set of strains for which you want the desnping done and the gzipped snp file.  The output for this will include probes_filtered.tsv (your desnped probes), probes_snps.tsv (the probes containing snps between strains), and your desnp.log file:
+
+    desnp.py -l -f probes.tsv -g Sanger.UNC.Combined.SNPs.txt.gz -s 129S1/SvImJ:CE/J
+
+* To summarize the results of the above command, group by gene and write messages to summarize.log you'll actually need a few additional parameters, as each file you are going to use, needs to be explicitely called out on the command-line.  In addition to the summarize.log file, the output is a statistics.tsv file:
+
+    summarize.py -g gene -p probes_filtered.tsv -s samples.tsv -d data.tsv  -l
+
+Details about the expected formats for the probes.tsv, samples.tsv and data.tsv files can be found in the detailed sections below for DeSNP and Summarization.
+
+DeSNPing Details
+----------------
 
 In brief, the desnp program takes a set of Probes, and a set of strain samples, and then uses one of two SNP references (Sanger's VCF format file or the CGD Sanger UNC Imputed SNPs) to identify all probes that have a SNP within any of the selected strains.  These probes are "desnped" from the dataset.  
 
@@ -116,8 +127,9 @@ The "strain/SNP" column of the probes_snp.tsv file is formated:
      SNPID, CHROM, POS, REF, ALT, Strain1 Allele, Strain1 confidence,
      ... StrainN Allele, StrainN conf. 
 
-BASIC DATA SUMMARIZATION
----------------
+
+DETAILS FOR BASIC DATA SUMMARIZATION
+------------------------------------
 
 This project also include a program `summarize.py` that takes the output from the desnp program and does some basic grouping and summarization.  Currently the program can group by probe (no grouping) or gene (groups by MGI ID Gene id).  In all cases a *log2 transform* and *quantile normalization* are run against a matrix of intensity values.  As we've mentioned before the MooseDB zip file includes 3 files.  One of these files is `data.tsv`.  This includes the intensity values for the probes in `probes.tsv` and the strains in `samples.tsv`.  The program uses the `probes_filtered.tsv` file to select the set of probes for which summary statistics will be run.  If "gene" grouping is being done, an addidtional step is added where the probes are grouped, and then a *median polish* is run on these groups to get one intensity value for each group for each sample.  This program adds an additional file to the MooseDB Zip named `statistics.tsv`.  This contains several columns of annotation information for each group and then appends the summarized intensity values to the row of data.  The column names for the summarized intensity values are taken from the `samples.tsv` files `sampleid` column.  If you are trying to run this tool from data files other than the ones generated from MooseDB
 
@@ -146,39 +158,11 @@ USAGE of `summarize.py` program:
 
 
 
-EXAMPLE
+EXAMPLES
 ---------------
 
-To get a list of valid strains from a SNP Reference file:
+The desnp_example.zip example data set has been provided for you to test the tool with.  To test the option where you pass it individual files instead of the zip file, just unzip the file and a probes.tsv, samples.tsv and data.tsv file will be found.  You can also use these example files as a guideline for the expected column naming and ordering the files should take if you generate your input files yourself.
 
-    ./desnp.py -l -z ../test_data/MOOSE_db_Little.zip -g ../test_data/Sanger.UNC.Combined.SNPs.txt.gz -r
+If you were running these in an HPC compute enviroment using torque/moab, we've included an example script "cluster_script_example.pbs" that you could use to submit to the custer.  Make sure you modify the script with the location where you have installed DeSNP, placed your SNP file, and name of your inputs.
 
-To process a moose db zip file and write the results to a desnp.log file:
-
-    ./desnp.py -l -z ../test_data/MOOSE_db_Little.zip -g ../test_data/Sanger.UNC.Combined.SNPs.txt.gz -s 129S1/SvImJ:CE/J
-
-To summarize the results of the above command, group by gene and write messages to log:
-
-    ./summarize.py -g gene -z ../test_data/MOOSE_db_Little.zip  -l
-
-
-If you were running these in an HPC compute enviroment using torque/moab, below is an example script that you could use to submit to the custer:
-
-    #!/bin/bash
     
-    #PBS -l nodes=1:ppn=1,walltime=3:00:00
-    #PBS -q batch
-    #PBS -m e
-    #PBS -M your.email@your.domain
-    
-    cd $PBS_O_WORKDIR
-    
-    module load Python
-    
-    cp /where/DeSNP-1.0/installed/desnp.conf .
-    export PYTHONPATH=/where/DeSNP-1.0/installed/lib
-    /where/DeSNP-1.0/installed/desnp.py --log --zip MOOSEDB_download.zip --gzipsnp Sanger.UNC.Combined.SNPs.20120301.txt.gz --strains 129S1/SvImJ:CE/J
-
-    /where/DeSNP-1.0/installed/summarize.py --log --group gene --zip /MOOSEDB_download.zip 
-    #end PBS script
-
