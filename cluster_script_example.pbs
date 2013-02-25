@@ -1,0 +1,17 @@
+#!/bin/bash
+    
+#PBS -l nodes=1:ppn=1,walltime=3:00:00
+#PBS -q batch
+#PBS -m e
+#PBS -M your.email@your.domain
+    
+cd $PBS_O_WORKDIR
+    
+module load Python
+    
+cp /where/DeSNP-1.0/installed/desnp.conf .
+/where/DeSNP-1.0/installed/desnp.py --log --zip desnp_example.zip --gzipsnp Sanger.UNC.Combined.SNPs.txt.gz --strains 129S1/SvImJ:CE/J
+
+/where/DeSNP-1.0/installed/summarize.py --log --group gene --zip desnp_example.zip 
+#end PBS script
+
