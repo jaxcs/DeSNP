@@ -89,7 +89,12 @@ def quantnorm(x):
         currIndexes = sortIndexes[row, :]
         x[currIndexes, range(cols)] = np.median(x[currIndexes, range(cols)])
 
-
+"""
+Takes a file descriptor for a probe file.  Assumes file is delimited by tabs.  
+Makes the assumption that the probe set id column is "ProbeSet ID" and that the
+probe id column is "id".  Does not assume column order, but uses these two fields to extract
+information.  Returns a dictionary of Probe objects.
+"""
 def getProbes(probe_fd):
     global probe_ids
     probes = {}
@@ -122,6 +127,10 @@ def getProbes(probe_fd):
         logging.info("Loaded " + str(len(probe_ids)) + " probes.")
     return probes
 
+"""
+Takes the sample file descriptor and returns a list of sample names.  It is assumed the
+sample names are in the column "sampleid"
+"""
 def getSampleNames(sample_fd):
     reader = csv.reader(sample_fd, delimiter="\t")
     samples = []
@@ -135,6 +144,10 @@ def getSampleNames(sample_fd):
             samples.append(line[sample_col])
     return samples
 
+"""
+Takes the map of probe objects and a file descriptor for the matrix of intensity values
+and adds these intensity values to the appropriate probe.
+"""
 def addProbeData(probes, data_fd):
     keys = probes.keys()
     reader = csv.reader(data_fd, delimiter="\t")
@@ -164,6 +177,10 @@ def addProbeData(probes, data_fd):
     if verbose:
         logging.info( "Updated " + str(updated) + " probes with intensity data")
 
+"""
+Will take the dictionary of probes and will return a matrix of intensity values
+probes x samples
+"""
 def getIntensityMatrix(probes):
     data = []
     row_length = 0
@@ -192,6 +209,11 @@ def getIntensityMatrix(probes):
     y = np.array(x, dtype=np.int32)
     return y
 
+"""
+Takes the Dictionary of probes and the list of samples and groups them
+by gene.  It uses median polish to give only one value per sample per grouping.
+The new grouped matrix is returned.
+"""
 def groupProbesetsByGene(probes, samples):
     groupings = None
     # Currently we are only grouping by Gene.  If we add another level of 
@@ -362,10 +384,10 @@ def main():
             level=logging.ERROR)
     
     if nonzip_used and zip_used:
-        logging.error("Zip file option (-z) cannot be used with explicit naming of files (-p, -d & -s).\n" +
-            "Either pass the file inside a zip, or individually from the command line.")
-        usage()
-        sys.exit(1)
+        logging.warn("When Zip file option (-z) is be used with explicit naming of files (-p, -d & -s),\n" +
+            "it is assumed these files are inside the zip file.")
+        #usage()
+        #sys.exit(1)
     if verbose:
         logging.info("Zip file = " + input_file_name)
         if log:
