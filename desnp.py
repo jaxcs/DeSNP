@@ -68,6 +68,7 @@ import gzip
 import pysam
 
 from probe import Probe
+from probe import parseProbesFromLine
 
 __author__="dave.walton@jax.org"
 __date__="$Jan 09, 2012 01:32:00 PM$"
@@ -251,11 +252,13 @@ This function takes a probe, and a snp file.
 The function returns a list of snps, if any are found in the region
 covered by this probe.  If no snps are found "None" is returned.
 """
-def getSNPList(probe, tabixFile):
+def getSNPList(probes, tabixFile):
     regions = []
-    if probe.probe_start > -1:
-        regions = tabixFile.fetch(reference=probe.chromosome, 
-            start=probe.probe_start, end=probe.probe_end)
+    for probe in probes:
+        if probe.probe_start > -1:
+            tmp_regions = tabixFile.fetch(reference=probe.chromosome, 
+                start=probe.probe_start, end=probe.probe_end)
+            region += tmp_regions
     return regions
 
 
@@ -294,6 +297,16 @@ def deSNP(probe, probe_snp_list, strains, probe_writer, rv_writer, vcf=False):
         # 
         snpmap[strain] = ""
         
+    locations = []
+    if probe.location:
+        tokens = probe.location.split(";")
+        for token in tokens:
+            (chrom, prange) = token.split(":")
+            (start, end) = prange.split("-")
+            locations.append({"start":start, "end":end})
+    else:
+        locations.append({"start":probe.probe_start, "end":probe.probe_end})
+
     # assume there are no snps within the set of strains
     has_snp = False
     for snp in probe_snp_list:
@@ -328,7 +341,24 @@ def deSNP(probe, probe_snp_list, strains, probe_writer, rv_writer, vcf=False):
                 value.startswith("1/0"))) or
                 (value == alt and (confidence == "1" or confidence == "2"))):
                 has_snp = True
-                corrected_position = int(snp_position) - probe.probe_start - 1
+                corrected_position = 0
+                if len(locations > 1):
+                    corected_position = int(snp_position)
+                    last_end = 0
+                    for location in locations:
+                        if snp_position >= location["start"]:
+                            if last_end == 0:
+                                corrected_position -= location["start"]
+                                last_end = location["end"]
+                            else:
+                                diff = location["start"] - last_end
+                                corrected_position -= diff
+                                last_end = location["end"]
+                        else:
+                            break
+                    corrected_position -= 1
+                else:
+                    corrected_position = int(snp_position) - locations[0]["start"] - 1
                 # If no snp found yet, replace '0' with single letter abbrev
                 if snpmap[strain] == '':
                     snpmap[strain] = str(corrected_position)
@@ -615,20 +645,24 @@ def main():
             # Write header to RV file
             rv_writer.writerow(line_for_rv)
             continue
-        probe = Probe(line, header)
-        probe_counter += 1
+        tmp_probes = parseProbesFromLine(line, header)
+        probe_counter += len(tmp_probes)
+        #probe = Probe(line, header)
+        #probe_counter += 1
         
         try:
-            CHRS.index(probe.chromosome)
+            #  All probes in tmp_probes are the same probe, different locations, so the
+            #  chromosome is the same
+            CHRS.index(tmp_probes[0].chromosome)
         except ValueError:
-            logging.warning("Chr " + str(probe.chromosome) + " not supported.  " +
-                         "Keeping probe... " + str(probe.id))
-            writer.writerow(probe.asList())
+            logging.warning("Chr " + str(tmp_probes[0].chromosome) + " not supported.  " +
+                         "Keeping probe... " + str(tmp_probes[0].id))
+            writer.writerow(tmp_probes[0].asList())
             written_probes += 1
             continue
         else:
-            probe_snp_list = getSNPList(probe, snp_reader)
-            deSNP(probe, probe_snp_list, strains, writer, rv_writer, vcf)
+            probe_snp_list = getSNPList(tmp_probes, snp_reader)
+            deSNP(tmp_probes[0], probe_snp_list, strains, writer, rv_writer, vcf)
     
     writer_fd.close()
     rv_fd.close()
