@@ -5,7 +5,7 @@ summarize.py
 February 10, 2012
 Dave Walton - dave.walton@jax.org
 
-This probram is intended for summarizing probe data so that it can
+This program is intended for summarizing probe data so that it can
 be passed on to the GEM database and application for mining and more
 advanced analysis.
 
@@ -38,6 +38,7 @@ import numpy as np
 import medpolish as mp
 from probe import Probe
 from probe import ProbeSet
+from probe import parseProbesFromLine
 
 
 
@@ -46,7 +47,10 @@ __author__="dave.walton@jax.org"
 __date__="$Feb 10, 2012 08:00:00 AM$"
 
 #  This list is used to keep the order we read our probes in.
-probe_ids = []
+g_probe_ids = []
+
+#  This indicates whether we are grouping by probe or gene
+g_group = None
 
 # When we run against the Moosedb SNP file, we make certain assumptions about 
 # naming conventions of files in the zip.  We will first look for a desnp.conf
@@ -54,6 +58,10 @@ probe_ids = []
 PROBE_FILE = "filtered_probes.tsv"
 SAMPLE_FILE = "samples.tsv"
 DATA_FILE = "data.tsv"
+
+PROBE_SET_COL_NAME = "ProbeSet ID"
+PROBE_ID_COL_NAME  = "id"
+SAMPLE_NAME_COL_NAME = "sampleid"
 
 """
 usage() method prints valid parameters to program.
@@ -96,19 +104,20 @@ probe id column is "id".  Does not assume column order, but uses these two field
 information.  Returns a dictionary of Probe objects.
 """
 def getProbes(probe_fd):
-    global probe_ids
+    global g_probe_ids
     probes = {}
     reader = csv.reader(probe_fd, delimiter="\t")
     first = True
     header = []
     id_col = -1
     psi_col = -1
+    dropped_no_start_end = 0
     for line in reader:
         # skip header
         if first:
             header = line
-            psi_col = header.index("ProbeSet ID")
-            id_col = header.index("id")
+            psi_col = header.index(PROBE_SET_COL_NAME)
+            id_col = header.index(PROBE_ID_COL_NAME)
             first = False
             continue
         probe = None
@@ -120,11 +129,20 @@ def getProbes(probe_fd):
             probe = probes[probe_id]
             probe.addProbeSetId(line[psi_col])
         else:
-            probe = Probe(line, header)
+            # parseProbesFromLine can result in multiple instances of the same probe...
+            tmp_probes = parseProbesFromLine(line, header)
+            # ...for summarization this is irrelavent, just keep the first
+            probe = tmp_probes[0]
+            if g_group == "gene" and (not probe.start_pos or not probe.end_pos):
+                #  Drop probes that have no gene start and end, they mess up the matrix
+                #print "Probe " + probe.id + " has invalid start/end. Skipping..."
+                dropped_no_start_end += 1
+                continue
             probes[probe.id] = probe
-            probe_ids.append(probe.id)
+            g_probe_ids.append(probe.id)
     if verbose:
-        logging.info("Loaded " + str(len(probe_ids)) + " probes.")
+        logging.info("Loaded " + str(len(g_probe_ids)) + " probes.")
+        logging.info(str(dropped_no_start_end) + "  probes dropped because no gene start/end provided.")
     return probes
 
 """
@@ -138,7 +156,11 @@ def getSampleNames(sample_fd):
     sample_col = 0
     for line in reader:
         if first:
-            sample_col = line.index("sampleid")
+            sample_col = line.index(SAMPLE_NAME_COL_NAME)
+            if sample_col < 0:
+                # Fail, there required column name is missing
+                logging.error("The sample file, must contain a column 'sampleid'.  This " +\
+                    "column should contain the names for the sample column headers in the summarized output file.")
             first = False
         else:
             samples.append(line[sample_col])
@@ -173,6 +195,7 @@ def addProbeData(probes, data_fd):
             updated += 1
         except:
             # If the probe_id is not in the dictionary, we skip the line
+            #logging.debug("Probe " + str(probe_id) + " not probes list")
             continue
     if verbose:
         logging.info( "Updated " + str(updated) + " probes with intensity data")
@@ -188,7 +211,7 @@ def getIntensityMatrix(probes):
     success = True
     #  Iterate through probes and make sure each row has the same number of intensities.
     #  If not, warn the user and exit, we cannot proceed with summarization.
-    for probe_id in probe_ids:
+    for probe_id in g_probe_ids:
         row = probes[probe_id].intensities
         if row_length == 0:
             row_length = len(row)
@@ -222,24 +245,30 @@ def groupProbesetsByGene(probes, samples):
 
     groupings_dict = {}
     # Divide the dataset into groups by MGI ID
-    for probe_id in probe_ids:
+    for probe_id in g_probe_ids:
         probe = probes[probe_id]
-        mgi_id = probe.mgi_id
-        if mgi_id == None or not mgi_id.startswith("MGI:"):
+        gene_id = probe.gene_id
+
+        # TODO:  Figure out why I cared if Gene ID started with MGI:
+        #        Commmenting out for now...
+        if gene_id == None or not gene_id.startswith("MGI:"):
+            print "Yo! Funky Gene ID = '" + str(gene_id) + "'"
+        #if gene_id == None:
             continue
-        if groupings_dict.has_key(mgi_id):
-            group = groupings_dict[mgi_id]
-            group.addProbe(probe)
+        if groupings_dict.has_key(gene_id):
+            grouping = groupings_dict[gene_id]
+            grouping.addProbe(probe)
         else:
-            group_values = [probe.mgi_id, probe.symbol, probe.name,
+            group_values = [probe.gene_id, probe.symbol, probe.name,
                             probe.chromosome, probe.start_pos, probe.end_pos,
                             probe.strand]
-            group_header = ['MGI ID', 'MGI Symbol', 'MGI Name', 'Chr',
+            group_header = ['Gene ID', 'Gene Symbol', 'Gene Name', 'Chr',
                             'Start', 'End', 'Strand']
-            group = ProbeSet(group_values, group_header)
-            group.setSampleNames(samples)
-            group.addProbe(probe)
-            groupings_dict[probe.mgi_id] = group
+            grouping = ProbeSet(group_values, group_header)
+            grouping.setSampleNames(samples)
+            grouping.addProbe(probe)
+
+            groupings_dict[probe.gene_id] = grouping
 
 
     groupings = groupings_dict.values()
@@ -250,10 +279,10 @@ def groupProbesetsByGene(probes, samples):
     #    run them through medpolish, then add the "col" results as
     #    the intensity values of the group
     groups_processed = 0
-    for group in groupings:
-        matrix = group.getProbeNPMatrix()
+    for grouping in groupings:
+        matrix = grouping.getProbeNPMatrix()
         medp_result = mp.adjustedMedpolish(matrix)
-        group.setIntensities(medp_result.col)
+        grouping.setIntensities(medp_result.col)
         groups_processed += 1
         if verbose:
             if operator.mod(groups_processed, 1000) == 0:
@@ -296,7 +325,7 @@ Usage of this program can be found in program header and by running:
   sample columns.
 """
 def main():
-    global PROBE_FILE, SAMPLE_FILE, DATA_FILE, verbose, probe_ids
+    global PROBE_FILE, SAMPLE_FILE, DATA_FILE, verbose, g_probe_ids, g_group
     try:
         optlist, args = getopt.getopt(sys.argv[1:],
                                       'g:hlo:vz:p:s:d:',
@@ -310,7 +339,7 @@ def main():
     #  Parse options from the command line.
     #     We do this here so that the resulting variables are local to main
     #
-    group = 'gene'
+    g_group = 'gene'
     verbose = False
     delim   = '\t'
     log     = False
@@ -344,10 +373,10 @@ def main():
         elif opt in ("-v", "--verbose"):
             verbose = True
         elif opt in ("-g", "--group"):
-            group = arg
-            if group not in ('gene', 'probe'):
+            g_group = arg
+            if g_group not in ('gene', 'probe'):
                 sys.stderr.write("ERROR: invalid grouping for probesets: " + \
-                                 group + "\n\n")
+                                 g_group + "\n\n")
                 usage()
                 sys.exit(1)
         elif opt in ("-l", "--log"):
@@ -488,7 +517,7 @@ def main():
     quantnorm(log2_matrix)
 
     i = 0
-    for probe_id in probe_ids:
+    for probe_id in g_probe_ids:
         intensity_row = log2_matrix[i]
         i += 1
         probe = probes[probe_id]
@@ -497,22 +526,21 @@ def main():
     group_count = 0
 
     # Create our groupings and write the the statistics file
-    if group != 'probe':
+    if g_group != 'probe':
         groupings = groupProbesetsByGene(probes, samples)
         group_count = len(groupings)
-        sorted(groupings, key=lambda group: (group.chromosome, group.start_pos))
+        sorted(groupings, key=lambda grouping: (grouping.chromosome, grouping.start_pos))
         first=True
-        for group in groupings:
+        for grouping in groupings:
             if first:
-                writer.writerow(group.headList())
+                writer.writerow(grouping.headList())
                 first = False
-
-            writer.writerow(group.asList())
+            writer.writerow(grouping.asList())
     else:
         i = 0
         first = True
-        group_count = len(probe_ids)
-        for probe_id in probe_ids:
+        group_count = len(g_probe_ids)
+        for probe_id in g_probe_ids:
             if first:
                 writer.writerow(probe.headList())
                 first = False
@@ -529,7 +557,7 @@ def main():
         logging.info("finished processing at: " + time.strftime("%H:%M:%S") +
                      "\n")
         logging.info("Total groupings = " + str(group_count) +  \
-                     " from " + str(len(probe_ids)) + " probes")
+                     " from " + str(len(g_probe_ids)) + " probes")
 
 if __name__ == "__main__":
     main()
