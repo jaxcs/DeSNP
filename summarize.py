@@ -55,7 +55,7 @@ g_group = None
 # When we run against the Moosedb SNP file, we make certain assumptions about 
 # naming conventions of files in the zip.  We will first look for a desnp.conf
 # file.  If it does not exist, then we use the defaults below.
-PROBE_FILE = "filtered_probes.tsv"
+PROBE_FILE = "probes_filtered.tsv"
 SAMPLE_FILE = "samples.tsv"
 DATA_FILE = "data.tsv"
 
