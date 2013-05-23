@@ -19,21 +19,145 @@
 import sys
 import numpy as np
 
-"""
-Probe is a class for holding the details about a single probe.
 
-This class is directly tied to the 'probe.csv' file that comes from moosedb.
-It assumes the column names from moosedb and uses them to assign the
-appropriate attributes.
-"""
+def probeAttribute(p, value):
+    """ Method that maps input column names with setter methods in Probe
+    Supported Column Names:
+    'id'        - Unique Identifier for the probe
+    'Probe ID'  - Probe ID as defined by microarray platform
+    'ProbeSet ID' - If microarray platform provides a Probeset
+    'Probe Start' - BP start position of probe (file either needs
+        this field, plus Probe End and Chr OR it needs Location)
+    'Probe End'   - See Probe Start
+    'Location'  - Location is an alternative to Probe Start and End.
+        In cases where a probe actually is several exons, it is 
+        necessary to have multiple starts and ends.  
+        Format = Chr:start1-end1;Chr:start2-end2;Chr:startn-endn
+        ex. 1:300100200-300100209;1:300100211-300100223
+    'Sequence'  - The probe sequence
+    'MGI ID'    - MGI Gene ID this probe is within (requred for 
+        summarization by Gene)
+    'Gene ID'   - Alternative to MGI ID (either or)
+    'MGI Symbol'- Gene Symbol (nice to have for summarization by gene)
+    'Gene Symbol' - Alternative to MGI Symbol (either or)
+    'MGI Name'  - Gene Name (nice to have for summarization by gene)
+    'Gene Name' - Alternative to MGI Name (either or)
+    'Chr'       - Chromosome (Not required if 'Location' included)
+    'Chromosome'- Alternative to Chr (either or)
+    'Start'     - Start position of Gene (required for Summarization by Gene)
+    'End'       - End position of Gene (required for Summarization by Gene)
+    'Strand'    - Strand is optional
+
+    This method is used in parse code for dealing with fact that Python
+    doesn't have a switch statement.
+
+    Keyword arguments:
+    p -- this is an instance of an empty probe object to which we'll add 
+         attributes
+    value -- the attribute column name
+
+    Returns the set method to call
+    """
+    return {'id':p.setId,
+           'probe id':p.setProbeId,
+           'probeset id':p.setProbeSetId,
+           'probe start':p.setProbeStart,
+           'probe end':p.setProbeEnd,
+           'location':p.location,
+           'sequence':p.setSequence,
+           'mgi id':p.setGeneId,
+           'gene id':p.setGeneId,
+           'mgi symbol':p.setSymbol,
+           'gene symbol':p.setSymbol,
+           'mgi name':p.setName,
+           'gene name':p.setName,
+           'chr':p.setChr,
+           'chromosome':p.setChr,
+           'start':p.setStart,
+           'end':p.setEnd,
+           'strand':p.setStrand}[value]
+
+
+
+def parseProbesFromLine(line, header):
+    """Generate Probes from a line that has been split into a list of tokens
+    Assumes the column names comply to the names in our probeAttribute method 
+
+    While one line is a single probe we actually process the probes by location.  
+    A given probe can have multiple locations.
+    
+    Keyword arguments:
+    line -- tab-delimited line representing a probe
+
+    Returns a list of Probe objects, which actually represent the different 
+    positions/exons for a single probe
+    """
+    
+    probes = []
+
+    # Below is my replacement for Python not have a switch/case
+    # statement.  I leverage the probeAttribute method to select
+    # the setter method to call.
+    probe = Probe(header)
+    multiple_locations = False
+    for i in range(len(line)):
+        #  Use the header names to set the appropriate attribute
+        try:
+            #TODO: consider changing this so it converts case to all upper or lower
+            #probe.options[header[i]](line[i])
+            probeAttribute(probe, header[i].lower())(line[i])
+            # if location has a value, and there are multiple positions in location
+            # note it.  We'll need to duplicate the probe.
+            if (line[i].lower() == 'location'):
+                if probe.location:
+                    locations = probe.location.split(";")
+                    if len(locations) > 1:
+                        multiple_locations = True
+        except KeyError:
+            # unsupported column name, skip
+            continue
+
+    first = True
+    if multiple_locations:
+        locations = probe.locations.split(";")
+        for location in locations:
+            (chrom,loc_range) = location.split(":")
+            (pstart,pend) = loc_range.split("-")
+            if first:
+                probe.setChr(chrom)
+                probe.setProbeStart(pstart)
+                probe.setProbeEnd(pend)
+                probes.append(probe)
+                first = False
+            else:
+                p = probe.clone()
+                p.setChr(chrom)
+                p.setProbeStart(pstart)
+                p.setProbeEnd(pend)
+                probes.append()
+    else:
+        probes.append(probe)
+
+    return probes
+
+
+
+
 class Probe:
+    """Class for holding the details about a single probe.
+
+    This class is directly tied to the 'probe.csv' file that comes from moosedb.
+    It assumes the column names from moosedb and uses them to assign the
+    appropriate attributes.
+    """
     id = None
     probe_id = None
     probeset_id = None
+    location = None
     probe_start = None
     probe_end = None
     sequence = None
-    mgi_id = None
+    gene_id = None
     symbol = None
     name = None
     chromosome = None
@@ -43,30 +167,9 @@ class Probe:
     intensities = None
     sampleNames = None
 
-    def __init__(self, tokens, header):
-        # Below is my replacement for Python not have a switch/case
-        # statement
-        options = {'id':self.setId,
-                   'Probe ID':self.setProbeId,
-                   'ProbeSet ID':self.setProbeSetId,
-                   'Probe Start':self.setProbeStart,
-                   'Probe End':self.setProbeEnd,
-                   'Sequence':self.setSequence,
-                   'MGI ID':self.setMGIId,
-                   'MGI Symbol':self.setSymbol,
-                   'MGI Name':self.setName,
-                   'Chr':self.setChr,
-                   'Start':self.setStart,
-                   'End':self.setEnd,
-                   'Strand':self.setStrand}
-        self.intensities = []           
-        for i in range(len(tokens)):
-            #  Use the header names to set the appropriate attribute
-            try:
-                options[header[i]](tokens[i])
-            except KeyError:
-                # unsupported column name, skip
-                continue
+    def __init__(self, header):
+        self.intensities = []
+        self.header = header           
             
     def setId(self,value):
         self.id = value
@@ -88,6 +191,9 @@ class Probe:
         except:
             pass
         
+    def setLocation(self,value):
+        self.location = value
+
     def setSequence(self,value):
         self.sequence = value
         
@@ -106,8 +212,8 @@ class Probe:
         else:
             self.probeset_id = value
         
-    def setMGIId(self,value):
-        self.mgi_id = value
+    def setGeneId(self,value):
+        self.gene_id = value
         
     def setSymbol(self,value):
         self.symbol = value
@@ -134,9 +240,14 @@ class Probe:
         self.sampleNames = samples
     
     def headList(self):
-        list = ['id', 'Probe ID', 'ProbeSet ID', 'Sequence', 
-                'Probe Start', 'Probe End', 'MGI ID',
-                'MGI Symbol', 'MGI Name', 'Chr', 'Start', 'End', 'Strand']
+        if (self.location):
+            list = ['id', 'Probe ID', 'ProbeSet ID', 'Sequence', 
+                'Probe Start', 'Probe End', 'Gene ID',
+                'Gene Symbol', 'Gene Name', 'Chr', 'Start', 'End', 'Strand']
+        else:
+            list = ['id', 'Probe ID', 'ProbeSet ID', 'Sequence', 
+                'Location', 'Gene ID',
+                'Gene Symbol', 'Gene Name', 'Start', 'End', 'Strand']
         
         # If there are intensity values, add a single header last...
         # TODO: It might be good to eventually replace this with sample names,
@@ -151,9 +262,15 @@ class Probe:
         return list
         
     def asList(self):
-        value = [self.id, self.probe_id, self.probeset_id, self.sequence,
+        if (self.location):
+            value = [self.id, self.probe_id, self.probeset_id, self.sequence,
+                 self.location,
+                 self.gene_id, self.symbol, self.name, 
+                 self.start_pos, self.end_pos, self.strand]
+        else:
+            value = [self.id, self.probe_id, self.probeset_id, self.sequence,
                  self.probe_start, self.probe_end,
-                 self.mgi_id, self.symbol, self.name, self.chromosome, 
+                 self.gene_id, self.symbol, self.name, self.chromosome, 
                  self.start_pos, self.end_pos, self.strand]
                         
         # If there are intensity values, append them last in the order we
@@ -163,13 +280,35 @@ class Probe:
           
         return value
 
-"""
-ProbeSet is a class for holding the details about a set of probes grouped
-by something.  In our default case the grouping is by gene.
+    def clone(self):
+        p = Probe()
+        p.setId(self.id)
+        p.setProbeId(self.probe_id)
+        p.setProbeSetId(self.probeset_id)
+        p.setSequence(self.sequence)
+        p.setLocation(self.location)
+        p.setProbeStart(self.probe_start)
+        p.setProbeEnd(self.probe_end)
+        p.setChr(self.chromosome)
+        p.setGeneId(self.gene_id)
+        p.setSymbol(self.symbol)
+        p.setName(self.name)
+        p.setStart(self.start_pos)
+        p.setEnd(self.end_pos)
+        p.setStrand(self.strand)
+        p.setIntensities(self.intensities)
+        p.setSammpleNames(self.sampleNames)
+        return p
 
-"""
+
+
 class ProbeSet:
-    mgi_id = None
+    """
+    ProbeSet is a class for holding the details about a set of probes grouped
+    by something.  In our default case the grouping is by gene.
+
+    """
+    gene_id = None
     symbol = None
     name = None
     chromosome = None
@@ -183,25 +322,29 @@ class ProbeSet:
     def __init__(self, tokens, header):
         # Below is my replacement for Python not have a switch/case
         # statement
-        options = {'MGI ID':self.setMGIId,
-                   'MGI Symbol':self.setSymbol,
-                   'MGI Name':self.setName,
-                   'Chr':self.setChr,
-                   'Start':self.setStart,
-                   'End':self.setEnd,
-                   'Strand':self.setStrand}
+        options = {'mgi id':self.setGeneId,
+                   'gene id':self.setGeneId,
+                   'mgi symbol':self.setSymbol,
+                   'gene symbol':self.setSymbol,
+                   'mgi name':self.setName,
+                   'gene name':self.setName,
+                   'chr':self.setChr,
+                   'chromosome':self.setChr,
+                   'start':self.setStart,
+                   'end':self.setEnd,
+                   'strand':self.setStrand}
         self.probes = []
         self.intensities = []
         for i in range(len(tokens)):
             #  Use the header names to set the appropriate attribute
             try:
-                options[header[i]](tokens[i])
+                options[header[i].lower()](tokens[i])
             except KeyError:
                 # unsupported column name, skip
                 continue
             
-    def setMGIId(self,value):
-        self.mgi_id = value
+    def setGeneId(self,value):
+        self.gene_id = value
         
     def setSymbol(self,value):
         self.symbol = value
@@ -250,7 +393,7 @@ class ProbeSet:
 
     
     def headList(self):
-        list = ['MGI ID', 'MGI Symbol', 'MGI Name', 'Chr', 'Start', 
+        list = ['Gene ID', 'Gene Symbol', 'gene Name', 'Chr', 'Start', 
                 'End', 'Strand']
         
         # If there are intensity values, add a single header last...
@@ -266,14 +409,20 @@ class ProbeSet:
         return list
         
     def asList(self):
-        value = [self.mgi_id, self.symbol, self.name, self.chromosome, 
+        value = [self.gene_id, self.symbol, self.name, self.chromosome, 
                  self.start_pos, self.end_pos, self.strand]
                         
         # If there are intensity values, append them last in the order we
         # have them
         if len(self.intensities) > 0:
-            value += self.intensities
-            
+            try:
+                value += self.intensities
+            except ValueError, exc:
+                print "'" + str(value) + "'"
+                print str(self.gene_id) + "," + str(self.symbol) + "," + str(self.chromosome)
+                print "'" + str(self.intensities) + "'" 
+                print exc.msg
+                sys.exit(1)           
         return value
         
                 
