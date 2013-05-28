@@ -75,8 +75,18 @@ __date__="$Jan 09, 2012 01:32:00 PM$"
 
 # The first column in the Sanger VCF where there are strains
 VCF_STRAIN_START_COL = 9
+VCF_SNP_POS = 1
 # The first column in Dan's CGD SNP file where there are strains
-CGD_STRAIN_START_COL = 5
+# mm9 is 5, mm10 is 4... we need to do something about this.
+#CGD_STRAIN_START_COL = 5
+CGD_STRAIN_START_COL = 4
+# Sampe problem here... mm10 different than mm9
+#CGD_SNP_POS = 2
+CGD_SNP_POS = 1
+#CGD_REF_POS = 3
+CGD_REF_POS = 2
+#CGD_ALT_POS = 4
+CGD_ALT_POS = 3
 # Counters for diagnostic purposes
 written_probes = 0
 written_snps = 0
@@ -258,7 +268,7 @@ def getSNPList(probes, tabixFile):
         if probe.probe_start > -1:
             tmp_regions = tabixFile.fetch(reference=probe.chromosome, 
                 start=probe.probe_start, end=probe.probe_end)
-            region += tmp_regions
+            regions += tmp_regions
     return regions
 
 
@@ -299,11 +309,17 @@ def deSNP(probe, probe_snp_list, strains, probe_writer, rv_writer, vcf=False):
         
     locations = []
     if probe.location:
+        #tokens = probe.location.split(";")
         tokens = probe.location.split(";")
         for token in tokens:
             (chrom, prange) = token.split(":")
             (start, end) = prange.split("-")
             locations.append({"start":start, "end":end})
+        if len(locations) > 1:
+            # If negative strand, the locations are stored highest start
+            # to lowest
+            if probe.strand == "-":
+                locations.reverse()
     else:
         locations.append({"start":probe.probe_start, "end":probe.probe_end})
 
@@ -317,9 +333,9 @@ def deSNP(probe, probe_snp_list, strains, probe_writer, rv_writer, vcf=False):
             position = strains[strain]
             # column1 in the tokens list is "SNP Position"
             if vcf:
-                snp_position = tokens[1]
+                snp_position = tokens[VCF_SNP_POS]
             else:
-                snp_position = tokens[2]
+                snp_position = tokens[CGD_SNP_POS]
             ref = ""
             alt = ""
             confidence = ""
@@ -328,9 +344,9 @@ def deSNP(probe, probe_snp_list, strains, probe_writer, rv_writer, vcf=False):
                 position = position + VCF_STRAIN_START_COL
             else:
                 # reference call
-                ref = tokens[3]
+                ref = tokens[CGD_REF_POS]
                 # alternate call
-                alt = tokens[4]
+                alt = tokens[CGD_ALT_POS]
                 #  Adjust the position based on start of strains in row
                 position = ((position) * 2) + CGD_STRAIN_START_COL
                 confidence = tokens[position + 1]
@@ -342,23 +358,24 @@ def deSNP(probe, probe_snp_list, strains, probe_writer, rv_writer, vcf=False):
                 (value == alt and (confidence == "1" or confidence == "2"))):
                 has_snp = True
                 corrected_position = 0
-                if len(locations > 1):
-                    corected_position = int(snp_position)
+                if (len(locations) > 1):
+                    
+                    corrected_position = int(snp_position)
                     last_end = 0
                     for location in locations:
                         if snp_position >= location["start"]:
                             if last_end == 0:
-                                corrected_position -= location["start"]
-                                last_end = location["end"]
+                                corrected_position -= int(location["start"])
+                                last_end = int(location["end"])
                             else:
-                                diff = location["start"] - last_end
+                                diff = int(location["start"]) - last_end
                                 corrected_position -= diff
-                                last_end = location["end"]
+                                last_end = int(location["end"])
                         else:
                             break
-                    corrected_position -= 1
                 else:
-                    corrected_position = int(snp_position) - locations[0]["start"] - 1
+                    #  TODO:  This shouldn't work!!!
+                    corrected_position = int(snp_position) - int(locations[0]["start"])
                 # If no snp found yet, replace '0' with single letter abbrev
                 if snpmap[strain] == '':
                     snpmap[strain] = str(corrected_position)
@@ -623,16 +640,24 @@ def main():
     first = True
     probe_counter = 0
     written_probes = 0
-    header = None
+    input_header = None
+    headers_written = False
     for line in reader:
         # The first line should be a header, write it back out...
         if first:
             first = False
-            header = line
+            input_header = line
+            continue
+        tmp_probes = parseProbesFromLine(line, input_header)
+        probe_counter += len(tmp_probes)
+
+        #  If we haven't written out the header line for our output files 
+        #  do it now.  Must be done after we have our first probe.
+        if not headers_written:
             # Write header to filtered file
-            # TODO: Should replace this with writing out the
-            writer.writerow(line)
-            line_for_rv = line
+            head_list = tmp_probes[0].headList()
+            writer.writerow(head_list)
+            rv_head = head_list
             # The "strain/SNP" column of the RV file is formated:
             #   strain1;strain2;strain3;...;strainN
             # for the header and:
@@ -641,15 +666,11 @@ def main():
             # with a SNP for that strain, empty string where there are no SNPs
             # for the strain.
             rv_strains = ";".join(sorted(strains.keys(),cmp=lambda x,y: cmp(x.lower(), y.lower())))
-            line_for_rv.append(rv_strains)
-            # Write header to RV file
-            rv_writer.writerow(line_for_rv)
-            continue
-        tmp_probes = parseProbesFromLine(line, header)
-        probe_counter += len(tmp_probes)
-        #probe = Probe(line, header)
-        #probe_counter += 1
+            rv_head.append(rv_strains)
+            rv_writer.writerow(rv_head)
+            headers_written = True
         
+        # Checking to see if this is a valid Chromosome...ValueError would be a no.
         try:
             #  All probes in tmp_probes are the same probe, different locations, so the
             #  chromosome is the same
