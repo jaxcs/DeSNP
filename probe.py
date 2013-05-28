@@ -34,6 +34,7 @@ def probeAttribute(p, value):
         necessary to have multiple starts and ends.  
         Format = Chr:start1-end1;Chr:start2-end2;Chr:startn-endn
         ex. 1:300100200-300100209;1:300100211-300100223
+    'genomic_position' - Alternative to Location (either or)
     'Sequence'  - The probe sequence
     'MGI ID'    - MGI Gene ID this probe is within (requred for 
         summarization by Gene)
@@ -63,7 +64,8 @@ def probeAttribute(p, value):
            'probeset id':p.setProbeSetId,
            'probe start':p.setProbeStart,
            'probe end':p.setProbeEnd,
-           'location':p.location,
+           'location':p.setLocation,
+           'genomic_position':p.setLocation,
            'sequence':p.setSequence,
            'mgi id':p.setGeneId,
            'gene id':p.setGeneId,
@@ -108,8 +110,9 @@ def parseProbesFromLine(line, header):
             probeAttribute(probe, header[i].lower())(line[i])
             # if location has a value, and there are multiple positions in location
             # note it.  We'll need to duplicate the probe.
-            if (line[i].lower() == 'location'):
+            if (header[i].lower() == 'location' or header[i].lower() == 'genomic_position'):
                 if probe.location:
+                    #locations = probe.location.split(";")
                     locations = probe.location.split(";")
                     if len(locations) > 1:
                         multiple_locations = True
@@ -118,8 +121,11 @@ def parseProbesFromLine(line, header):
             continue
 
     first = True
+    #  if there are "multiple locations" in the probe.location attribute, then
+    #  we need to create a separate probe instance for each location
     if multiple_locations:
-        locations = probe.locations.split(";")
+        #locations = probe.locations.split(";")
+        locations = probe.location.split(";")
         for location in locations:
             (chrom,loc_range) = location.split(":")
             (pstart,pend) = loc_range.split("-")
@@ -134,7 +140,16 @@ def parseProbesFromLine(line, header):
                 p.setChr(chrom)
                 p.setProbeStart(pstart)
                 p.setProbeEnd(pend)
-                probes.append()
+                probes.append(p)
+    #  If there are not multiple locations, but there is a value in the location
+    #  field, this over-rides the individual Chr, and ProbeStart and ProbeEnd attributes.
+    elif probe.location:
+        (chrom,loc_range) = probe.location.split(":")
+        (pstart,pend) = loc_range.split("-")
+        probe.setChr(chrom)
+        probe.setProbeStart(pstart)
+        probe.setProbeEnd(pend)
+        probes.append(probe)
     else:
         probes.append(probe)
 
@@ -242,12 +257,12 @@ class Probe:
     def headList(self):
         if (self.location):
             list = ['id', 'Probe ID', 'ProbeSet ID', 'Sequence', 
-                'Probe Start', 'Probe End', 'Gene ID',
-                'Gene Symbol', 'Gene Name', 'Chr', 'Start', 'End', 'Strand']
-        else:
-            list = ['id', 'Probe ID', 'ProbeSet ID', 'Sequence', 
                 'Location', 'Gene ID',
                 'Gene Symbol', 'Gene Name', 'Start', 'End', 'Strand']
+        else:
+            list = ['id', 'Probe ID', 'ProbeSet ID', 'Sequence', 
+                'Probe Start', 'Probe End', 'Gene ID',
+                'Gene Symbol', 'Gene Name', 'Chr', 'Start', 'End', 'Strand']
         
         # If there are intensity values, add a single header last...
         # TODO: It might be good to eventually replace this with sample names,
@@ -281,7 +296,7 @@ class Probe:
         return value
 
     def clone(self):
-        p = Probe()
+        p = Probe(self.header)
         p.setId(self.id)
         p.setProbeId(self.probe_id)
         p.setProbeSetId(self.probeset_id)
@@ -297,7 +312,7 @@ class Probe:
         p.setEnd(self.end_pos)
         p.setStrand(self.strand)
         p.setIntensities(self.intensities)
-        p.setSammpleNames(self.sampleNames)
+        p.setSampleNames(self.sampleNames)
         return p
 
 
