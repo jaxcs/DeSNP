@@ -78,15 +78,15 @@ VCF_STRAIN_START_COL = 9
 VCF_SNP_POS = 1
 # The first column in Dan's CGD SNP file where there are strains
 # mm9 is 5, mm10 is 4... we need to do something about this.
-#CGD_STRAIN_START_COL = 5
-CGD_STRAIN_START_COL = 4
+CGD_STRAIN_START_COL = 5
+#CGD_STRAIN_START_COL = 4
 # Sampe problem here... mm10 different than mm9
-#CGD_SNP_POS = 2
-CGD_SNP_POS = 1
-#CGD_REF_POS = 3
-CGD_REF_POS = 2
-#CGD_ALT_POS = 4
-CGD_ALT_POS = 3
+CGD_SNP_POS = 2
+#CGD_SNP_POS = 1
+CGD_REF_POS = 3
+#CGD_REF_POS = 2
+CGD_ALT_POS = 4
+#CGD_ALT_POS = 3
 # Counters for diagnostic purposes
 written_probes = 0
 written_snps = 0
