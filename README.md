@@ -107,7 +107,7 @@ The "strain/SNP" column of the probes_snp.tsv file is formated:
  
     0:1;1;;...;0:2
     
- where under each strain is the colon separated list of positions with a SNP for that strain, empty string where there are no SNPs for the strain.  In the example above strain1 has snps at position 0 and 1, strain2 at position 1; strain3 has no SNPs, and strainN has SNPs at positions 0 and 2.
+ where under each strain is the colon separated list of positions with a SNP for that strain, empty string where there are no SNPs for the strain.  In the example above strain1 has snps at position 0 and 1, strain2 at position 1; strain3 has no SNPs, and strainN has SNPs at positions 0 and 2.  If you want the absolute base of the snp you add the offset to the start base.  One caveat, if the probe is spread over multiple exons with gaps in between, the offset value is based on the probe sequence, so simply adding the offset to the first start position will not result in an accurate absolute position.
 
  USAGE of `desnp.py` program:
  
