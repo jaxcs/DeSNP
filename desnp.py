@@ -67,7 +67,6 @@ import zipfile
 import gzip
 import pysam
 
-from probe import Probe
 from probe import parseProbesFromLine
 
 __author__="dave.walton@jax.org"
@@ -151,7 +150,7 @@ def getProbeFDFromZip(input_file_name):
         return fd
     else:
         logging.error(input_file_name + " is not a valid zip file!")
-        system.exit(1)
+        sys.exit(1)
 
 
 """
@@ -435,7 +434,7 @@ def zipResults(zip_source_file, probe_file, rv_file):
         src_zip = zipfile.ZipFile(zip_source_file, 'a')
     else:
         logging.error(zip_source_file + " is not a valid zip file!")
-        system.exit(1)
+        sys.exit(1)
         
     src_zip.write(probe_file)
     src_zip.write(rv_file)
