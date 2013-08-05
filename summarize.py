@@ -61,7 +61,8 @@ DATA_FILE = "data.tsv"
 
 PROBE_SET_COL_NAME = "ProbeSet ID"
 PROBE_ID_COL_NAME  = "id"
-SAMPLE_NAME_COL_NAME = "sampleid"
+SAMPLE_COL_NAME = "sampleid"
+SAMPLE_COL_NAME_ALT = "Sample"
 
 """
 usage() method prints valid parameters to program.
@@ -91,6 +92,7 @@ It takes a numpy matrix and does quantile normalization of the matrix.
 Returns the normalized matrix
 """
 def quantnorm(x):
+    logging.debug(x)
     rows, cols = x.shape
     sortIndexes = np.argsort(x, axis=0)
     for row in range(rows):
@@ -131,8 +133,10 @@ def getProbes(probe_fd):
         else:
             # parseProbesFromLine can result in multiple instances of the same probe...
             tmp_probes = parseProbesFromLine(line, header)
-            # ...for summarization this is irrelavent, just keep the first
+            # ...for summarization this is irrelevant, just keep the first
             probe = tmp_probes[0]
+
+            #  If grouping by gene and no gene start and end position, drop this probe
             if g_group == "gene" and (not probe.start_pos or not probe.end_pos):
                 #  Drop probes that have no gene start and end, they mess up the matrix
                 #print "Probe " + probe.id + " has invalid start/end. Skipping..."
@@ -147,7 +151,7 @@ def getProbes(probe_fd):
 
 """
 Takes the sample file descriptor and returns a list of sample names.  It is assumed the
-sample names are in the column "sampleid"
+sample names are in the column "sampleid" or "Sample"
 """
 def getSampleNames(sample_fd):
     reader = csv.reader(sample_fd, delimiter="\t")
@@ -156,11 +160,16 @@ def getSampleNames(sample_fd):
     sample_col = 0
     for line in reader:
         if first:
-            sample_col = line.index(SAMPLE_NAME_COL_NAME)
-            if sample_col < 0:
-                # Fail, there required column name is missing
-                logging.error("The sample file, must contain a column 'sampleid'.  This " +\
-                    "column should contain the names for the sample column headers in the summarized output file.")
+            try:
+                sample_col = line.index(SAMPLE_COL_NAME)
+            except ValueError:
+                try:
+                    sample_col = line.index(SAMPLE_COL_NAME_ALT)
+                except ValueError:
+                    # Fail, there required column name is missing
+                    logging.error("The sample file, must contain a column '" + SAMPLE_COL_NAME + "' or '" + SAMPLE_COL_NAME_ALT + "'.  This " +\
+                                  "column should contain the names for the sample column headers in the summarized output file.")
+                    sys.exit(1)
             first = False
         else:
             samples.append(line[sample_col])
@@ -252,7 +261,7 @@ def groupProbesetsByGene(probes, samples):
         # TODO:  Figure out why I cared if Gene ID started with MGI:
         #        Commmenting out for now...
         if gene_id == None or not gene_id.startswith("MGI:"):
-            print "Yo! Funky Gene ID = '" + str(gene_id) + "'"
+            print "Not an MGI Gene ID = '" + str(gene_id) + "'"
         #if gene_id == None:
             continue
         if groupings_dict.has_key(gene_id):
@@ -507,48 +516,59 @@ def main():
     # Add the intensity data to the probe objects
     addProbeData(probes, data_fd)
 
-    # Generate a single intensity matrix
-    intensity_matrix = getIntensityMatrix(probes)
-    
-    # Log2 Transform matrix
-    log2_matrix = np.log2(intensity_matrix)
-
-    # Do quantile normalization of matrix (method updates log2_matrix by ref)
-    quantnorm(log2_matrix)
-
-    i = 0
-    for probe_id in g_probe_ids:
-        intensity_row = log2_matrix[i]
-        i += 1
-        probe = probes[probe_id]
-        probe.setIntensities(intensity_row)
     # Diagnostic count only
     group_count = 0
-
-    # Create our groupings and write the the statistics file
-    if g_group != 'probe':
-        groupings = groupProbesetsByGene(probes, samples)
-        group_count = len(groupings)
-        sorted(groupings, key=lambda grouping: (grouping.chromosome, grouping.start_pos))
-        first=True
-        for grouping in groupings:
-            if first:
-                writer.writerow(grouping.headList())
-                first = False
-            writer.writerow(grouping.asList())
-    else:
+    
+    #  If there are no probes left after filtering for gene start and end
+    #  Skip this step
+    if (len(probes) > 0):
+        # Generate a single intensity matrix
+        intensity_matrix = getIntensityMatrix(probes)
+    
+        # Log2 Transform matrix
+        log2_matrix = np.log2(intensity_matrix)
+    
+        # Do quantile normalization of matrix (method updates log2_matrix by ref)
+        quantnorm(log2_matrix)
+    
         i = 0
-        first = True
-        group_count = len(g_probe_ids)
+    
         for probe_id in g_probe_ids:
-            if first:
-                writer.writerow(probe.headList())
-                first = False
-
-            writer.writerow(probe.asList())
-
+            intensity_row = log2_matrix[i]
+            inten_array = []
+            for intensity in intensity_row:
+                inten_array.append(intensity)
+            i += 1
+            probe = probes[probe_id]
+            probe.setIntensities(inten_array)
+            
+        # Create our groupings and write the the statistics file
+        if g_group != 'probe':
+            groupings = groupProbesetsByGene(probes, samples)
+            group_count = len(groupings)
+            sorted(groupings, key=lambda grouping: (grouping.chromosome, grouping.start_pos))
+            first=True
+            for grouping in groupings:
+                if first:
+                    writer.writerow(grouping.headList())
+                    first = False
+                writer.writerow(grouping.asList())
+        else:
+            i = 0
+            first = True
+            group_count = len(g_probe_ids)
+            for probe_id in g_probe_ids:
+                if first:
+                    writer.writerow(probe.headList())
+                    first = False
+    
+                writer.writerow(probe.asList())
+    else:
+        logging.info("No probes left to summarize.  Possibly there were no Gene Start and End values in '" + PROBE_FILE + "'")
+    #  Force any data written to file
     writer_fd.flush()
-    #logging.debug("Writing " + out_file_name + " into " + input_file_name)
+    
+    # If we are using a zip file, we want to write our results back out to the zip
     if zip_used:
         zipResults(input_file_name, out_file_name)
         os.remove(out_file_name)
