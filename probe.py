@@ -35,6 +35,7 @@ def probeAttribute(p, value):
         Format = Chr:start1-end1;Chr:start2-end2;Chr:startn-endn
         ex. 1:300100200-300100209;1:300100211-300100223
     'genomic_position' - Alternative to Location (either or)
+    'position'  - Alternative to Location (either or)
     'Sequence'  - The probe sequence
     'MGI ID'    - MGI Gene ID this probe is within (requred for 
         summarization by Gene)
@@ -66,6 +67,7 @@ def probeAttribute(p, value):
            'probe end':p.setProbeEnd,
            'location':p.setLocation,
            'genomic_position':p.setLocation,
+           'position':p.setLocation,
            'sequence':p.setSequence,
            'mgi id':p.setGeneId,
            'gene id':p.setGeneId,
@@ -110,7 +112,7 @@ def parseProbesFromLine(line, header):
             probeAttribute(probe, header[i].lower())(line[i])
             # if location has a value, and there are multiple positions in location
             # note it.  We'll need to duplicate the probe.
-            if (header[i].lower() == 'location' or header[i].lower() == 'genomic_position'):
+            if (header[i].lower() == 'location' or header[i].lower() == 'genomic_position' or header[i].lower() == 'position'):
                 if probe.location:
                     #locations = probe.location.split(";")
                     locations = probe.location.split(";")
@@ -158,7 +160,7 @@ def parseProbesFromLine(line, header):
 
 
 
-class Probe:
+class Probe(object):
     """Class for holding the details about a single probe.
 
     This class is directly tied to the 'probe.csv' file that comes from moosedb.
@@ -186,6 +188,8 @@ class Probe:
         self.intensities = []
         self.header = header           
             
+    def __str__(self):
+        return str(self.id) + ", " + str(self.probe_id) + ", " + str(self.probeset_id) + ", " + str(self.location) + ", " + str(self.probe_start) + ", " + str(self.probe_end) + ", " +  str(self.chromosome)
     def setId(self,value):
         self.id = value
         
@@ -195,7 +199,7 @@ class Probe:
         self.chromosome = value
         
     def setProbeStart(self,value):
-	try:
+        try:
             self.probe_start = int(value)
         except ValueError:
             pass
@@ -317,7 +321,7 @@ class Probe:
 
 
 
-class ProbeSet:
+class ProbeSet(object):
     """
     ProbeSet is a class for holding the details about a set of probes grouped
     by something.  In our default case the grouping is by gene.
