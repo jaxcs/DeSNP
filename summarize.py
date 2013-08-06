@@ -261,7 +261,7 @@ def groupProbesetsByGene(probes, samples):
         # TODO:  Figure out why I cared if Gene ID started with MGI:
         #        Commmenting out for now...
         if gene_id == None or not gene_id.startswith("MGI:"):
-            print "Not an MGI Gene ID = '" + str(gene_id) + "'"
+            print "Not an MGI Gene ID = '" + str(gene_id) + "' - " + str(probe.asList()) 
         #if gene_id == None:
             continue
         if groupings_dict.has_key(gene_id):
