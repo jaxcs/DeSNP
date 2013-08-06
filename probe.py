@@ -75,6 +75,7 @@ def probeAttribute(p, value):
            'gene symbol':p.setSymbol,
            'mgi name':p.setName,
            'gene name':p.setName,
+           'gene position':p.setGeneLocation,
            'chr':p.setChr,
            'chromosome':p.setChr,
            'start':p.setStart,
@@ -122,6 +123,8 @@ def parseProbesFromLine(line, header):
             # unsupported column name, skip
             continue
 
+    if probe.id == "45038":
+        sys.stderr.write(str(probe.asList()) + "\n")
     first = True
     #  if there are "multiple locations" in the probe.location attribute, then
     #  we need to create a separate probe instance for each location
@@ -177,6 +180,7 @@ class Probe(object):
     gene_id = None
     symbol = None
     name = None
+    gene_location = None
     chromosome = None
     start_pos = None
     end_pos = None
@@ -190,6 +194,7 @@ class Probe(object):
             
     def __str__(self):
         return str(self.id) + ", " + str(self.probe_id) + ", " + str(self.probeset_id) + ", " + str(self.location) + ", " + str(self.probe_start) + ", " + str(self.probe_end) + ", " +  str(self.chromosome)
+    
     def setId(self,value):
         self.id = value
         
@@ -240,6 +245,14 @@ class Probe(object):
     def setName(self,value):
         self.name = value
         
+    def setGeneLocation(self,value):
+        self.gene_location = value
+        chr,loc = value.split(":")
+        self.setChr(chr)
+        s,e = loc.split("-")
+        self.setStart(s)
+        self.setEnd(e)
+        
     def setStart(self,value):
         try:
             self.start_pos = int(value)
@@ -262,11 +275,16 @@ class Probe(object):
         if (self.location):
             list = ['id', 'Probe ID', 'ProbeSet ID', 'Sequence', 
                 'Location', 'Gene ID',
-                'Gene Symbol', 'Gene Name', 'Start', 'End', 'Strand']
+                'Gene Symbol', 'Gene Name', 'Strand']
         else:
             list = ['id', 'Probe ID', 'ProbeSet ID', 'Sequence', 
                 'Probe Start', 'Probe End', 'Gene ID',
-                'Gene Symbol', 'Gene Name', 'Chr', 'Start', 'End', 'Strand']
+                'Gene Symbol', 'Gene Name', 'Chr', 'Strand']
+        if self.gene_location:
+            list.append("Gene Position")
+        else:
+            list.append("Start")
+            list.append("End")
         
         # If there are intensity values, add a single header last...
         # TODO: It might be good to eventually replace this with sample names,
@@ -285,13 +303,18 @@ class Probe(object):
             value = [self.id, self.probe_id, self.probeset_id, self.sequence,
                  self.location,
                  self.gene_id, self.symbol, self.name, 
-                 self.start_pos, self.end_pos, self.strand]
+                 self.strand]
         else:
             value = [self.id, self.probe_id, self.probeset_id, self.sequence,
                  self.probe_start, self.probe_end,
                  self.gene_id, self.symbol, self.name, self.chromosome, 
-                 self.start_pos, self.end_pos, self.strand]
+                 self.strand]
                         
+        if (self.gene_location):
+            value.append(self.gene_location)
+        else:
+            value.append(self.start_pos)
+            value.append(self.end_pos)
         # If there are intensity values, append them last in the order we
         # have them
         if len(self.intensities) > 0:
@@ -312,6 +335,7 @@ class Probe(object):
         p.setGeneId(self.gene_id)
         p.setSymbol(self.symbol)
         p.setName(self.name)
+        p.setGeneLocation(self.gene_location)
         p.setStart(self.start_pos)
         p.setEnd(self.end_pos)
         p.setStrand(self.strand)
@@ -412,7 +436,7 @@ class ProbeSet(object):
 
     
     def headList(self):
-        list = ['Gene ID', 'Gene Symbol', 'gene Name', 'Chr', 'Start', 
+        list = ['Gene ID', 'Gene Symbol', 'Gene Name', 'Chr', 'Start', 
                 'End', 'Strand']
         
         # If there are intensity values, add a single header last...
