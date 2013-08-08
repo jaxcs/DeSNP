@@ -246,12 +246,13 @@ class Probe(object):
         self.name = value
         
     def setGeneLocation(self,value):
-        self.gene_location = value
-        chr,loc = value.split(":")
-        self.setChr(chr)
-        s,e = loc.split("-")
-        self.setStart(s)
-        self.setEnd(e)
+        if (value != "null"):
+            self.gene_location = value
+            chr,loc = value.split(":")
+            self.setChr(chr)
+            s,e = loc.split("-")
+            self.setStart(s)
+            self.setEnd(e)
         
     def setStart(self,value):
         try:
