@@ -246,13 +246,15 @@ class Probe(object):
         self.name = value
         
     def setGeneLocation(self,value):
-        if (value != "null"):
+        try:
             self.gene_location = value
             chr,loc = value.split(":")
             self.setChr(chr)
             s,e = loc.split("-")
             self.setStart(s)
             self.setEnd(e)
+        except:
+            sys.stderr.write("Invalid location -> '" + value + "'  Skipping.\n")
         
     def setStart(self,value):
         try:
