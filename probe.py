@@ -254,7 +254,7 @@ class Probe(object):
             self.setStart(s)
             self.setEnd(e)
         except:
-            sys.stderr.write("Invalid location -> '" + value + "'  Skipping.\n")
+            sys.stderr.write("Invalid location -> '" + str(value) + "'  Skipping.\n")
         
     def setStart(self,value):
         try:
