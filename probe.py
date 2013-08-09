@@ -62,6 +62,7 @@ def probeAttribute(p, value):
     """
     return {'id':p.setId,
            'probe id':p.setProbeId,
+           'probe_id':p.setProbeId,
            'probeset id':p.setProbeSetId,
            'probe start':p.setProbeStart,
            'probe end':p.setProbeEnd,
@@ -70,8 +71,10 @@ def probeAttribute(p, value):
            'position':p.setLocation,
            'sequence':p.setSequence,
            'mgi id':p.setGeneId,
+           'mgi_id':p.setGeneId,
            'gene id':p.setGeneId,
            'mgi symbol':p.setSymbol,
+           'mgi_symbol':p.setSymbol,
            'gene symbol':p.setSymbol,
            'mgi name':p.setName,
            'gene name':p.setName,
