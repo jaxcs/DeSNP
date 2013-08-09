@@ -675,11 +675,14 @@ def main():
             #  chromosome is the same
             CHRS.index(tmp_probes[0].chromosome)
         except ValueError:
-            logging.warning("Chr " + str(tmp_probes[0].chromosome) + " not supported.  " +
-                         "Keeping probe... " + str(tmp_probes[0].id))
-            writer.writerow(tmp_probes[0].asList())
-            written_probes += 1
-            continue
+            if tmp_probes[0].chromosome is None:
+                continue
+            else:
+                logging.warning("Chr " + str(tmp_probes[0].chromosome) + " not supported.  " +
+                             "Keeping probe... " + str(tmp_probes[0].id))
+                writer.writerow(tmp_probes[0].asList())
+                written_probes += 1
+                continue
         else:
             probe_snp_list = getSNPList(tmp_probes, snp_reader)
             deSNP(tmp_probes[0], probe_snp_list, strains, writer, rv_writer, vcf)
