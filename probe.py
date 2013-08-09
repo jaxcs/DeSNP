@@ -76,6 +76,7 @@ def probeAttribute(p, value):
            'mgi name':p.setName,
            'gene name':p.setName,
            'gene position':p.setGeneLocation,
+           'gene_position':p.setGeneLocation,
            'chr':p.setChr,
            'chromosome':p.setChr,
            'start':p.setStart,
@@ -111,6 +112,7 @@ def parseProbesFromLine(line, header):
             #TODO: consider changing this so it converts case to all upper or lower
             #probe.options[header[i]](line[i])
             probeAttribute(probe, header[i].lower())(line[i])
+                
             # if location has a value, and there are multiple positions in location
             # note it.  We'll need to duplicate the probe.
             if (header[i].lower() == 'location' or header[i].lower() == 'genomic_position' or header[i].lower() == 'position'):
@@ -123,8 +125,6 @@ def parseProbesFromLine(line, header):
             # unsupported column name, skip
             continue
 
-    if probe.id == "45038":
-        sys.stderr.write(str(probe.asList()) + "\n")
     first = True
     #  if there are "multiple locations" in the probe.location attribute, then
     #  we need to create a separate probe instance for each location
@@ -278,16 +278,11 @@ class Probe(object):
         if (self.location):
             list = ['id', 'Probe ID', 'ProbeSet ID', 'Sequence', 
                 'Location', 'Gene ID',
-                'Gene Symbol', 'Gene Name', 'Strand']
+                'Gene Symbol', 'Gene Name', 'Strand', 'Chr', 'Start', 'End']
         else:
             list = ['id', 'Probe ID', 'ProbeSet ID', 'Sequence', 
                 'Probe Start', 'Probe End', 'Gene ID',
-                'Gene Symbol', 'Gene Name', 'Chr', 'Strand']
-        if self.gene_location:
-            list.append("Gene Position")
-        else:
-            list.append("Start")
-            list.append("End")
+                'Gene Symbol', 'Gene Name', 'Strand', 'Chr', 'Start', 'End']
         
         # If there are intensity values, add a single header last...
         # TODO: It might be good to eventually replace this with sample names,
@@ -306,18 +301,13 @@ class Probe(object):
             value = [self.id, self.probe_id, self.probeset_id, self.sequence,
                  self.location,
                  self.gene_id, self.symbol, self.name, 
-                 self.strand]
+                 self.strand, self.chromosome, self.start_pos, self.end_pos]
         else:
             value = [self.id, self.probe_id, self.probeset_id, self.sequence,
                  self.probe_start, self.probe_end,
-                 self.gene_id, self.symbol, self.name, self.chromosome, 
-                 self.strand]
+                 self.gene_id, self.symbol, self.name, self.strand, self.chromosome, 
+                 self.start_pos, self.end_pos]
                         
-        if (self.gene_location):
-            value.append(self.gene_location)
-        else:
-            value.append(self.start_pos)
-            value.append(self.end_pos)
         # If there are intensity values, append them last in the order we
         # have them
         if len(self.intensities) > 0:
@@ -439,8 +429,8 @@ class ProbeSet(object):
 
     
     def headList(self):
-        list = ['Gene ID', 'Gene Symbol', 'Gene Name', 'Chr', 'Start', 
-                'End', 'Strand']
+        list = ['Gene ID', 'Gene Symbol', 'Gene Name', 'Strand', 'Chr', 'Start', 
+                'End']
         
         # If there are intensity values, add a single header last...
         # TODO: It might be good to eventually replace this with sample names,
@@ -455,8 +445,8 @@ class ProbeSet(object):
         return list
         
     def asList(self):
-        value = [self.gene_id, self.symbol, self.name, self.chromosome, 
-                 self.start_pos, self.end_pos, self.strand]
+        value = [self.gene_id, self.symbol, self.name, self.strand, self.chromosome, 
+                 self.start_pos, self.end_pos]
                         
         # If there are intensity values, append them last in the order we
         # have them
