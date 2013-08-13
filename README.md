@@ -22,13 +22,13 @@ DeSNP Pipeline Tools
     along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 
-OVERVIEW
+Overview
 ---------------
 
 This project is a toolkit from the [Center of Genome Dynamics(CGD)](http://cgd.jax.org/) at the [Jackson Laboratory](http://www.jax.org/).  For our purposes "DeSNPing" involves taking a list of probes (e.g. all probes from the Affy ST 1.0 platform) and a set of strains, and returning the probes that do not have a SNP within the set of strains.  In addition to DeSNPing the toolkit provides a convenience program which will generate summary statistics for your DeSNPed dataset.  The summarization method provides the option to group the data by probe (no grouping) or by gene.  In all cases summarization involves doing log2 transformation and quantile normalization of the matrix of intensity values.  If the option to group by gene is selected then a median polish is applied to the gene groups.  This tool was written to work with microarray data, but should be directly applicable to RNA Seq expression experiments as well.  
 
 
-WHAT YOU NEED TO GET STARTED
+What you need to get started
 ----------------------------
 
 There are several things you will need in order to run the DeSNPing tool.  The project can be downloaded from [Github](https://github.com/jaxcs/DeSNP).  The project contains two python programs as it's main components: `desnp.py` and `summarize.py`.
@@ -138,7 +138,7 @@ The "strain/SNP" column of the probes_snp.tsv file is formated:
      ... StrainN Allele, StrainN conf. 
 
 
-DETAILS FOR BASIC DATA SUMMARIZATION
+Details for Basic Data Summarization
 ------------------------------------
 
 This project also includes a program `summarize.py` that takes the output from the DeSNP program and does some basic grouping and summarization.  Currently the program can group by probe (no grouping) or gene (groups by MGI ID or Gene ID).  In all cases a *log2 transform* and *quantile normalization* are run against a matrix of intensity values.  As we've mentioned before the MooseDB zip file includes 3 files.  One of these files is `data.tsv`.  This includes the intensity values for the probes in `probes.tsv` and the strains in `samples.tsv`.  The program uses the `probes_filtered.tsv` file to select the set of probes for which summary statistics will be run.  If "gene" grouping is being done, an addidtional step is added where the probes are grouped, and then a *median polish* is run on these groups to get one intensity value for each group for each sample.  This program adds an additional file to the MooseDB Zip named `statistics.tsv`.  This contains several columns of annotation information for each group and then appends the summarized intensity values to the row of data.  The column names for the summarized intensity values are taken from the `samples.tsv` files `sampleid` column.  If you are trying to run this tool from data files other than the ones generated from MooseDB, the following are supported columns (you can substitute the word "MGI" with "Gene" if using another ID set):
@@ -173,7 +173,7 @@ USAGE of `summarize.py` program:
 
 
 
-EXAMPLES
+Examples
 ---------------
 
 The desnp_example.zip example data set has been provided for you to test the tool with.  
