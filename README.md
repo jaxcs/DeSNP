@@ -22,16 +22,16 @@ DeSNP Pipeline Tools
     along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 
-OVERVIEW
+Overview
 ---------------
 
-This project is a toolkit from the [Center of Genome Dynamics(CGD)](http://cgd.jax.org/) at the [Jackson Laboratory](http://www.jax.org/).  For our purposes "deSNPing" involves taking a list of probes (e.g. all probes from the Affy ST 1.0 platform) and a set of strains, and returning the probes that do not have a SNP within the set of strains.  In addition to deSNPing the toolkit provides a convenience program which will generate summary statistics for your deSNPed dataset.  The summarization method provides the option to group the data by probe (no grouping) or by gene.  In all cases summarization involves doing log2 transformation and quantile normalization of the matrix of intensity values.  If the option to group by gene is selected then a median polish is applied to the gene groups.  This tool was written to work with microarray data, but should be directly applicable to RNA Seq expression experiments as well.  
+This project is a toolkit from the [Center of Genome Dynamics(CGD)](http://cgd.jax.org/) at the [Jackson Laboratory](http://www.jax.org/).  For our purposes "DeSNPing" involves taking a list of probes (e.g. all probes from the Affy ST 1.0 platform) and a set of strains, and returning the probes that do not have a SNP within the set of strains.  In addition to DeSNPing the toolkit provides a convenience program which will generate summary statistics for your DeSNPed dataset.  The summarization method provides the option to group the data by probe (no grouping) or by gene.  In all cases summarization involves doing log2 transformation and quantile normalization of the matrix of intensity values.  If the option to group by gene is selected then a median polish is applied to the gene groups.  This tool was written to work with microarray data, but should be directly applicable to RNA Seq expression experiments as well.  
 
 
-WHAT YOU NEED TO GET STARTED
+What you need to get started
 ----------------------------
 
-There are several things you will need in order to run the desnping tool.  The project can be downloaded from [Github](https://github.com/jaxcs/DeSNP).  The project contains two python programs as it's main components: `desnp.py` and `summarize.py`.
+There are several things you will need in order to run the DeSNPing tool.  The project can be downloaded from [Github](https://github.com/jaxcs/DeSNP).  The project contains two python programs as it's main components: `desnp.py` and `summarize.py`.
 
 For these programs to work from the command-line you will need:
 * Python 2.6 or 2.7
@@ -50,11 +50,11 @@ How To Run
 ---------------
 
 These programs can be used in one of two ways.  The user can provide and explicitly call out all files necessary to run desnp.py and summarize.py, or they can use a compressed set of files as are provided when one pulls the data from the CGD's [MooseDB](http://moosedb.jax.org/).  The step by step shown below first will show how to use with a MooseDB zip file and then the second example uses the approach of calling out each file.  The next section will give full detail of all the parameters available to the two tools.
-* First we need to know what strains are available with our SNP Set, as selecting strains between which to "desnp" is critical:
+* First we need to know what strains are available with our SNP Set, as selecting strains between which to "DeSNP" is critical:
 
     desnp.py -v -g Sanger.UNC.Combined.SNPs.txt.gz -r
 
-* To process a moose db zip file and write the diagnostics to a desnp.log file (we are desnping here for only 2 strains "129S1/SvImJ" and "CE/J"):
+* To process a moose db zip file and write the diagnostics to a desnp.log file (we are DeSNPing here for only 2 strains "129S1/SvImJ" and "CE/J"):
 
     desnp.py -l -z desnp_example.zip -g Sanger.UNC.Combined.SNPs.txt.gz -s 129S1/SvImJ:CE/J
 
@@ -62,11 +62,11 @@ These programs can be used in one of two ways.  The user can provide and explici
 
     summarize.py -g gene -z desnp_example.zip  -l
 
-Remember, in both the desnp and summarize examples above, the output files are added to the zip file.
+Remember, in both the DeSNP and summarize examples above, the output files are added to the zip file.
 
 If you do not run DeSNP with the MooseDB generated zip file, the process is a little more involved, and requires you to provide input files in the proper format.  
 
-* For the DeSNP step, much like above, you will need to provide the actual probes file you want to desnp (as opposed to the MooseDB zip file that contains it), the set of strains for which you want the desnping done and the gzipped snp file.  The output for this will include probes_filtered.tsv (your desnped probes), probes_snps.tsv (the probes containing snps between strains), and your desnp.log file:
+* For the DeSNP step, much like above, you will need to provide the actual probes file you want to DeSNP (as opposed to the MooseDB zip file that contains it), the set of strains for which you want the DeSNPing done and the gzipped snp file.  The output for this will include probes_filtered.tsv (your DeSNPed probes), probes_snps.tsv (the probes containing snps between strains), and your desnp.log file:
 
     desnp.py -l -f probes.tsv -g Sanger.UNC.Combined.SNPs.txt.gz -s 129S1/SvImJ:CE/J
 
@@ -79,7 +79,7 @@ Details about the expected formats for the probes.tsv, samples.tsv and data.tsv 
 DeSNPing Details
 ----------------
 
-In brief, the desnp program takes a set of Probes, and a set of strain samples, and then uses one of two SNP references (Sanger's VCF format file or the CGD Sanger UNC Imputed SNPs) to identify all probes that have a SNP within any of the selected strains.  These probes are "desnped" from the dataset.  
+In brief, the DeSNP program takes a set of Probes, and a set of strain samples, and then uses one of two SNP references (Sanger's VCF format file or the CGD Sanger UNC Imputed SNPs) to identify all probes that have a SNP within any of the selected strains.  These probes are "DeSNPed" from the dataset.  
 
 The program was designed to work with the output from MooseDB (moosedb.jax.org), which produces a zip file that contains several tab delimited files associated with a micro array experiment.  Currently the zip file contains the following files: probes.tsv, samples.tsv and data.tsv.  The DeSNP program only uses the probes.tsv file.   If the program is used with a moosedb zip file, then the results `probes_filtered.tsv` and `probes_snp.tsv` are added to the original zip file.  The former is, as the name suggests, the filtered set of probes. The latter are only those probes that had snps within the set of strains, with an extra column added to every row with the identification of the strain and location of each SNP.  A user may also run `desnp.py` with a user provided text file, that can be comma or tab delimited.  For this option the user must include a set of mandatory columns:
 
@@ -138,10 +138,10 @@ The "strain/SNP" column of the probes_snp.tsv file is formated:
      ... StrainN Allele, StrainN conf. 
 
 
-DETAILS FOR BASIC DATA SUMMARIZATION
+Details for Basic Data Summarization
 ------------------------------------
 
-This project also includes a program `summarize.py` that takes the output from the desnp program and does some basic grouping and summarization.  Currently the program can group by probe (no grouping) or gene (groups by MGI ID or Gene ID).  In all cases a *log2 transform* and *quantile normalization* are run against a matrix of intensity values.  As we've mentioned before the MooseDB zip file includes 3 files.  One of these files is `data.tsv`.  This includes the intensity values for the probes in `probes.tsv` and the strains in `samples.tsv`.  The program uses the `probes_filtered.tsv` file to select the set of probes for which summary statistics will be run.  If "gene" grouping is being done, an addidtional step is added where the probes are grouped, and then a *median polish* is run on these groups to get one intensity value for each group for each sample.  This program adds an additional file to the MooseDB Zip named `statistics.tsv`.  This contains several columns of annotation information for each group and then appends the summarized intensity values to the row of data.  The column names for the summarized intensity values are taken from the `samples.tsv` files `sampleid` column.  If you are trying to run this tool from data files other than the ones generated from MooseDB, the following are supported columns (you can substitute the word "MGI" with "Gene" if using another ID set):
+This project also includes a program `summarize.py` that takes the output from the DeSNP program and does some basic grouping and summarization.  Currently the program can group by probe (no grouping) or gene (groups by MGI ID or Gene ID).  In all cases a *log2 transform* and *quantile normalization* are run against a matrix of intensity values.  As we've mentioned before the MooseDB zip file includes 3 files.  One of these files is `data.tsv`.  This includes the intensity values for the probes in `probes.tsv` and the strains in `samples.tsv`.  The program uses the `probes_filtered.tsv` file to select the set of probes for which summary statistics will be run.  If "gene" grouping is being done, an addidtional step is added where the probes are grouped, and then a *median polish* is run on these groups to get one intensity value for each group for each sample.  This program adds an additional file to the MooseDB Zip named `statistics.tsv`.  This contains several columns of annotation information for each group and then appends the summarized intensity values to the row of data.  The column names for the summarized intensity values are taken from the `samples.tsv` files `sampleid` column.  If you are trying to run this tool from data files other than the ones generated from MooseDB, the following are supported columns (you can substitute the word "MGI" with "Gene" if using another ID set):
 
     id, Probe ID, ProbeSet ID, MGI ID, MGI Symbol, MGI Name, Chr, Start, End, Strand
 
@@ -173,7 +173,7 @@ USAGE of `summarize.py` program:
 
 
 
-EXAMPLES
+Examples
 ---------------
 
 The desnp_example.zip example data set has been provided for you to test the tool with.  
