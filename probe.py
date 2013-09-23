@@ -119,8 +119,7 @@ def parseProbesFromLine(line, header):
             # if location has a value, and there are multiple positions in location
             # note it.  We'll need to duplicate the probe.
             if (header[i].lower() == 'location' or header[i].lower() == 'genomic_position' or header[i].lower() == 'position'):
-                if probe.location:
-                    #locations = probe.location.split(";")
+                if (probe.location and (";" in probe.location)):
                     locations = probe.location.split(";")
                     if len(locations) > 1:
                         multiple_locations = True
@@ -151,7 +150,7 @@ def parseProbesFromLine(line, header):
                 probes.append(p)
     #  If there are not multiple locations, but there is a value in the location
     #  field, this over-rides the individual Chr, and ProbeStart and ProbeEnd attributes.
-    elif probe.location:
+    elif (probe.location and (":" in probe.location)):
         (chrom,loc_range) = probe.location.split(":")
         (pstart,pend) = loc_range.split("-")
         probe.setChr(chrom)
