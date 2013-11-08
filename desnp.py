@@ -66,7 +66,7 @@ import csv
 import zipfile
 import gzip
 import pysam
-
+from datetime import datetime
 from probe import parseProbesFromLine
 
 __author__="dave.walton@jax.org"
@@ -283,11 +283,11 @@ and a boolean whether or not the snps are in vcf format
 
 If a snp to the reference genome is found to exist in any of the strains
 of interest this entire probe is "DeSNPed", meaning dropped from the set
-of interest.  Probes that are DeSNPed are written to the rv_writer with an
+of interest.  Probes that are DeSNPed are written to the rej_writer with an
 extra column containing the position and strain(s) that had the snp.  The
 probes with no SNPs between strains are written to the probe_writer.
 
-The "strain/SNP" column of the RV file is formated:
+The "strain/SNP" column of the rejected file is formated:
    strain1;strain2;strain3;...;
  for the header and:
    0:1;1;;...;0:2
@@ -297,7 +297,7 @@ The "strain/SNP" column of the RV file is formated:
 
 There is no return for this method.
 """
-def deSNP(probe, probe_snp_list, strains, probe_writer, rv_writer, vcf=False):
+def deSNP(probe, probe_snp_list, strains, probe_writer, rej_writer, vcf=False):
     global written_probes, written_snps
     # snpmap holds the list of snps found by strain
     snpmap = {}
@@ -394,7 +394,7 @@ def deSNP(probe, probe_snp_list, strains, probe_writer, rv_writer, vcf=False):
     
     
     if has_snp:
-        # The "strain/SNP" column of the RV file is formated:
+        # The "strain/SNP" column of the reject file is formated:
         #   strain1;strain2;strain3;...;strainN
         # for the header and:
         #   0:1;1;;...;0:2
@@ -414,7 +414,7 @@ def deSNP(probe, probe_snp_list, strains, probe_writer, rv_writer, vcf=False):
         probe_list = probe.asList()
         probe_list.append(snpstring)
         # write to rejected variance file
-        rv_writer.writerow(probe_list)
+        rej_writer.writerow(probe_list)
         written_snps += 1
     else:
         # write to probe file
@@ -427,7 +427,7 @@ zipResults()
 Add our new filtered probe file and probes with snps between strains
 into the zip source file we received.
 """
-def zipResults(zip_source_file, probe_file, rv_file):
+def zipResults(zip_source_file, probe_file, rej_file):
     #  Take the input zip,
     src_zip = None
     if zipfile.is_zipfile(zip_source_file):
@@ -437,9 +437,9 @@ def zipResults(zip_source_file, probe_file, rv_file):
         sys.exit(1)
         
     src_zip.write(probe_file)
-    src_zip.write(rv_file)
+    src_zip.write(rej_file)
     if verbose:
-        logging.info("Added files: " + probe_file + " and " + rv_file + \
+        logging.info("Added files: " + probe_file + " and " + rej_file + \
                    " to zip " + zip_source_file)
 
 """
@@ -603,6 +603,8 @@ def main():
     #
     #  Main Program Logic
     #
+    
+    # Set up our probe reader
     probe_fd = None
     if zipped:
         probe_fd = getProbeFDFromZip(input_file_name)
@@ -612,8 +614,9 @@ def main():
     strains = validateStrains(strains_string, snp_file_name, vcf)
     
     reader = csv.reader(probe_fd, delimiter=delim)
-    #  Default is that writer will write to standard out
-    writer = None
+    
+    # Set up our primary writer.  this is where our filtered
+    # probes will be written
     writer_fd = None
     if out_file_name:
         # If out_file_name explicitly included use it...
@@ -628,11 +631,13 @@ def main():
         # Otherwise we'll just write back out to stdout
         writer_fd = sys.stdout
     writer = csv.writer(writer_fd, delimiter=delim)
+    
+    # Set up writer for probes with snps (rejected)
     # This file will contain our probes that were rejected because of
     # variances/SNPs in between our selected strains
-    rv_file_name = SNP_PROBE_FILE
-    rv_fd = open(rv_file_name,'w')
-    rv_writer = csv.writer(rv_fd, delimiter=delim)
+    rej_file_name = SNP_PROBE_FILE
+    rej_fd = open(rej_file_name,'w')
+    rej_writer = csv.writer(rej_fd, delimiter=delim)
     
     snp_reader = initSNPReader(snp_file_name)
     
@@ -641,6 +646,9 @@ def main():
     written_probes = 0
     input_header = None
     headers_written = False
+    
+    DEBUG_TIME_TEST = {"findSnp": None, "deSnp": None}
+    # Process the probe file
     for line in reader:
         # The first line should be a header, write it back out...
         if first:
@@ -656,17 +664,17 @@ def main():
             # Write header to filtered file
             head_list = tmp_probes[0].headList()
             writer.writerow(head_list)
-            rv_head = head_list
-            # The "strain/SNP" column of the RV file is formated:
+            rej_head = head_list
+            # The "strain/SNP" column of the rejected file is formated:
             #   strain1;strain2;strain3;...;strainN
             # for the header and:
             #   0:1;1;;...;0:2
             # where under each strain is the colon separated list of position
             # with a SNP for that strain, empty string where there are no SNPs
             # for the strain.
-            rv_strains = ";".join(sorted(strains.keys(),cmp=lambda x,y: cmp(x.lower(), y.lower())))
-            rv_head.append(rv_strains)
-            rv_writer.writerow(rv_head)
+            rej_strains = ";".join(sorted(strains.keys(),cmp=lambda x,y: cmp(x.lower(), y.lower())))
+            rej_head.append(rej_strains)
+            rej_writer.writerow(rej_head)
             headers_written = True
         
         # Checking to see if this is a valid Chromosome...ValueError would be a no.
@@ -684,15 +692,34 @@ def main():
                 written_probes += 1
                 continue
         else:
+            a = datetime.now()
             probe_snp_list = getSNPList(tmp_probes, snp_reader)
-            deSNP(tmp_probes[0], probe_snp_list, strains, writer, rv_writer, vcf)
+            b = datetime.now()
+            c = b - a
+            if DEBUG_TIME_TEST["findSnp"] == None:
+                DEBUG_TIME_TEST["findSnp"] = c
+            else:
+                DEBUG_TIME_TEST["findSnp"] = DEBUG_TIME_TEST["findSnp"] + c
+            
+            a = datetime.now()
+            deSNP(tmp_probes[0], probe_snp_list, strains, writer, rej_writer, vcf)
+            b = datetime.now()
+            c = b - a
+            if DEBUG_TIME_TEST["deSnp"] == None:
+                DEBUG_TIME_TEST["deSnp"] = c
+            else:
+                DEBUG_TIME_TEST["deSnp"] = DEBUG_TIME_TEST["deSnp"] + c
+    
+    logging.debug("Took " + str(DEBUG_TIME_TEST["findSnp"]) + " to find SNPS")
+    logging.debug("Took " + str(DEBUG_TIME_TEST["deSnp"]) + " to do DeSNPing")
+            
     
     writer_fd.close()
-    rv_fd.close()
+    rej_fd.close()
     if zipped:
-        zipResults(input_file_name, out_file_name, rv_file_name)
+        zipResults(input_file_name, out_file_name, rej_file_name)
         os.remove(out_file_name)
-        os.remove(rv_file_name)
+        os.remove(rej_file_name)
         
     if verbose:
         logging.info("finished processing at: " + time.strftime("%H:%M:%S") +

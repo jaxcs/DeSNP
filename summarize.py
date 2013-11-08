@@ -34,6 +34,7 @@ import csv
 import zipfile
 import operator
 import numpy as np
+from datetime import datetime
 
 import medpolish as mp
 from probe import Probe
@@ -260,7 +261,8 @@ def groupProbesetsByGene(probes, samples):
 
         # TODO:  Figure out why I cared if Gene ID started with MGI:
         #        Commmenting out for now...
-        if gene_id == None or not gene_id.startswith("MGI:"):
+        if gene_id == None or  gene_id == '':
+        #if gene_id == None or not gene_id.startswith("MGI:"):
             print "Not an MGI Gene ID = '" + str(gene_id) + "'"
         #if gene_id == None:
             continue
@@ -495,7 +497,6 @@ def main():
             sys.exit(1)
 
     #  Default is that writer will write to standard out
-    writer = None
     writer_fd = None
     if out_file_name:
         # If out_file_name explicitly included use it...
@@ -506,7 +507,8 @@ def main():
         out_file_name = "statistics.tsv"
         writer_fd = open(out_file_name,'w')
     writer = csv.writer(writer_fd, delimiter=delim)
-        
+    
+    a = datetime.now()    
     # Get our set of filtered probes
     probes = getProbes(probe_fd)
 
@@ -515,6 +517,10 @@ def main():
 
     # Add the intensity data to the probe objects
     addProbeData(probes, data_fd)
+    
+    b = datetime.now()
+    c = b - a
+    logging.debug("Loading data took " + str(c))
 
     # Diagnostic count only
     group_count = 0
@@ -525,14 +531,23 @@ def main():
         # Generate a single intensity matrix
         intensity_matrix = getIntensityMatrix(probes)
     
+        a = datetime.now()  
         # Log2 Transform matrix
         log2_matrix = np.log2(intensity_matrix)
-    
+        b = datetime.now()
+        c = b - a
+        logging.debug("log2 took " + str(c))
+        
+        a = datetime.now()  
         # Do quantile normalization of matrix (method updates log2_matrix by ref)
         quantnorm(log2_matrix)
+        b = datetime.now()
+        c = b - a
+        logging.debug("quantnorm took " + str(c))
     
         i = 0
     
+        a = datetime.now()          
         for probe_id in g_probe_ids:
             intensity_row = log2_matrix[i]
             inten_array = []
@@ -541,18 +556,33 @@ def main():
             i += 1
             probe = probes[probe_id]
             probe.setIntensities(inten_array)
+        b = datetime.now()
+        c = b - a
+        logging.debug("resetting intensities took " + str(c))
             
         # Create our groupings and write the the statistics file
         if g_group != 'probe':
+            a = datetime.now()          
             groupings = groupProbesetsByGene(probes, samples)
+            b = datetime.now()
+            c = b - a
+            logging.debug("grouping Probesets took " + str(c))
             group_count = len(groupings)
+            a = datetime.now()
             sorted(groupings, key=lambda grouping: (grouping.chromosome, grouping.start_pos))
+            b = datetime.now()
+            c = b - a
+            logging.debug("sorting groupings took " + str(c))
             first=True
+            a = datetime.now()
             for grouping in groupings:
                 if first:
                     writer.writerow(grouping.headList())
                     first = False
                 writer.writerow(grouping.asList())
+            b = datetime.now()
+            c = b - a
+            logging.debug("writing groupings took " + str(c))
         else:
             i = 0
             first = True
@@ -570,8 +600,12 @@ def main():
     
     # If we are using a zip file, we want to write our results back out to the zip
     if zip_used:
+        a = datetime.now() 
         zipResults(input_file_name, out_file_name)
         os.remove(out_file_name)
+        b = datetime.now()
+        c = b - a
+        logging.debug("zipping groupings took " + str(c))
 
     if verbose:
         logging.info("finished processing at: " + time.strftime("%H:%M:%S") +
