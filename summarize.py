@@ -550,9 +550,10 @@ def main():
         a = datetime.now()          
         for probe_id in g_probe_ids:
             intensity_row = log2_matrix[i]
-            inten_array = []
-            for intensity in intensity_row:
-                inten_array.append(intensity)
+            inten_array = intensity_row.tolist()
+            #inten_array = []
+            #for intensity in intensity_row:
+            #    inten_array.append(intensity)
             i += 1
             probe = probes[probe_id]
             probe.setIntensities(inten_array)
