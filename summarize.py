@@ -60,7 +60,11 @@ PROBE_FILE = "probes_filtered.tsv"
 SAMPLE_FILE = "samples.tsv"
 DATA_FILE = "data.tsv"
 
+# This is only included because a probe can exist multiple times in the file with the only difference being the
+# probeset id.  When reading in our probes, we want a unique entry for each, so we just concatenated the
+# probeset id to the probeset id attribute in the Probe object.  PROBESET ID IS NOT A REQUIRED COLUMN!
 PROBE_SET_COL_NAME = "ProbeSet ID"
+# PROBE ID COLUMN IS REQUIRED.  We assume it is unique and named "id"
 PROBE_ID_COL_NAME  = "id"
 SAMPLE_COL_NAME = "sampleid"
 SAMPLE_COL_NAME_ALT = "Sample"
@@ -74,6 +78,7 @@ def usage():
         sys.argv[0], "[OPTIONS] -p <probes.tsv> -s <samples.tsv> -d <data.tsv> (2nd form)\n",\
         "OPTIONS:\n", \
         "    -g, --group    how to group probe sets, options are 'probe', 'gene' (default)\n\n",\
+        "    -i, --idcol    the name of the unique probe id column.  if not provided assumes 'id'\n\n",\
         "    -h, --help     return this message\n\n", \
         "    -l, --log      same as verbose but sends diagnostics to desnp.log\n\n", \
         "    -o, --out      the name of the output file the results will go to\n\n",\
@@ -336,11 +341,11 @@ Usage of this program can be found in program header and by running:
   sample columns.
 """
 def main():
-    global PROBE_FILE, SAMPLE_FILE, DATA_FILE, verbose, g_probe_ids, g_group
+    global PROBE_FILE, SAMPLE_FILE, DATA_FILE, PROBE_ID_COL_NAME, verbose, g_probe_ids, g_group
     try:
         optlist, args = getopt.getopt(sys.argv[1:],
-                                      'g:hlo:vz:p:s:d:',
-                                      ['group=','help','log','out=','verbose','zip=','probe=','sample=','data='])
+                                      'g:i:hlo:vz:p:s:d:',
+                                      ['group=','idcol=','help','log','out=','verbose','zip=','probe=','sample=','data='])
     except getopt.GetoptError, exc:
         # print help info
         usage()
@@ -356,7 +361,7 @@ def main():
     log     = False
     input_file_name = ""
     out_file_name   = ""
-    
+
     #  See if desnp.conf file exists
     if os.path.exists("desnp.conf") and os.path.isfile("desnp.conf"):
         conf = open("desnp.conf",'r')
@@ -374,6 +379,8 @@ def main():
             PROBE_FILE = parameters["FILTERED_PROBE_FILE"]
         if parameters.has_key("DATA_FILE"):
             DATA_FILE = parameters["DATA_FILE"]
+        if parameters.has_key("PROBE_ID_COL_NAME"):
+            PROBE_ID_COL_NAME = parameters["PROBE_ID_COL_NAME"]
 
     zip_used = False
     nonzip_used = False
@@ -390,6 +397,8 @@ def main():
                                  g_group + "\n\n")
                 usage()
                 sys.exit(1)
+        elif opt in ("-i", "--idcol"):
+            PROBE_ID_COL_NAME = arg
         elif opt in ("-l", "--log"):
             log = True
         elif opt in ("-z", "--zip"):
