@@ -97,6 +97,9 @@ PROBE_FILE = "probes.tsv"
 FILTERED_PROBE_FILE = "probes_filtered.tsv"
 SNP_PROBE_FILE = "probes_snp.tsv"
 
+# PROBE ID COLUMN IS REQUIRED.  We assume it is unique and named "id"
+PROBE_ID_COL_NAME  = "id"
+
 #  The list of chromosomes supported for DeSNPing
 CHRS = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16',
         '17','18','19','X']
@@ -116,6 +119,7 @@ def usage():
         "    -g, --gzipsnp  the gzipped snp file.  This requires an associated .tbi\n",\
         "                   tabix index file to be present in the same location\n\n",\
         "    -h, --help     return this message\n\n", \
+        "    -i, --idcol    the name of the unique probe id column.  if not provided assumes 'id'\n\n",\
         "    -l, --log      same as verbose but sends diagnostics to desnp.log\n\n", \
         "    -o, --out      the name of the output file the results will go to\n\n",\
         "    -r, --returnstrains Can be used in conjunction with -g to get the list of\n",\
@@ -448,15 +452,15 @@ Usage of this program can be found in program header and by running:
   ./desnp -h
 """
 def main():
-    global PROBE_FILE, FILTERED_PROBE_FILE, SNP_PROBE_FILE, verbose, written_probes
+    global PROBE_FILE, FILTERED_PROBE_FILE, SNP_PROBE_FILE, PROBE_ID_COL_NAME, verbose, written_probes
     #
     # TODO:  Make it so all command-line parameters can be passed, alternatively
     #        in the desnp.conf file.
     #
     try:
         optlist, args = getopt.getopt(sys.argv[1:],
-                                      'cf:g:hlo:rs:tvz:',
-                                      ['comma','file=','gzipsnp=','help',
+                                      'cf:g:i:hlo:rs:tvz:',
+                                      ['comma','file=','idcol=','gzipsnp=','help',
                                        'log','out=','returnstrains','strains=',
                                        'tab','vcf=','verbose','zip='])
     except getopt.GetoptError, exc:
@@ -497,7 +501,9 @@ def main():
             FILTERED_PROBE_FILE = parameters["FILTERED_PROBE_FILE"]
         if parameters.has_key("SNP_PROBE_FILE"):
             SNP_PROBE_FILE = parameters["SNP_PROBE_FILE"]
-    
+        if parameters.has_key("PROBE_ID_COL_NAME"):
+            PROBE_ID_COL_NAME = parameters["PROBE_ID_COL_NAME"]
+
     for opt, arg in optlist:
         print "[" + str(opt) + "]"
         if opt in ("-h", "--help"):
@@ -509,6 +515,8 @@ def main():
             verbose = True
         elif opt in ("-l", "--log"):
             log = True
+        elif opt in ("-i", "--idcol"):
+            PROBE_ID_COL_NAME = arg
         elif opt in ("-c", "--comma"):
             delim = ','
         elif opt in ("-t", "--tab"):
@@ -655,7 +663,7 @@ def main():
             first = False
             input_header = line
             continue
-        tmp_probes = parseProbesFromLine(line, input_header)
+        tmp_probes = parseProbesFromLine(line, input_header, PROBE_ID_COL_NAME)
         probe_counter += len(tmp_probes)
 
         #  If we haven't written out the header line for our output files 
