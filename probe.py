@@ -88,7 +88,7 @@ def probeAttribute(p, value):
 
 
 
-def parseProbesFromLine(line, header):
+def parseProbesFromLine(line, header, probe_id_col_name="id"):
     """Generate Probes from a line that has been split into a list of tokens
     Assumes the column names comply to the names in our probeAttribute method 
 
@@ -112,14 +112,24 @@ def parseProbesFromLine(line, header):
     for i in range(len(line)):
         #  Use the header names to set the appropriate attribute
         try:
-            #TODO: consider changing this so it converts case to all upper or lower
-            #probe.options[header[i]](line[i])
+            #TODO: consider changing this so it co
+            # If the user has provided an ID column other than "id", we need to set the id field
+            if "id" != probe_id_col_name and header[i].lower() == probe_id_col_name.lower():
+                probe.setId(line[i])
+            # If the user has assigned an id column other than "id", but there is a column named
+            # "id" in the file, skip it.
+            elif "id" != probe_id_col_name and header[i].lower() == "id":
+                continue
+
+            # for all columns call the method in probeAttribute to set the right attribute in
+            # probe object.
             probeAttribute(probe, header[i].lower())(line[i])
                 
             # if location has a value, and there are multiple positions in location
             # note it.  We'll need to duplicate the probe.
-            if (header[i].lower() == 'location' or header[i].lower() == 'genomic_position' or header[i].lower() == 'position'):
-                if (probe.location and (";" in probe.location)):
+            if (header[i].lower() == 'location' or header[i].lower() == 'genomic_position' or
+                        header[i].lower() == 'position'):
+                if probe.location and (";" in probe.location):
                     locations = probe.location.split(";")
                     if len(locations) > 1:
                         multiple_locations = True
@@ -357,6 +367,7 @@ class ProbeSet(object):
     probes = None
     intensities = None
     sampleNames = None
+    med_polish_results = None
     
     def __init__(self, tokens, header):
         # Below is my replacement for Python not have a switch/case
@@ -430,6 +441,14 @@ class ProbeSet(object):
     def setSampleNames(self, samples):
         self.sampleNames = samples
 
+    def setMedPolishResults(self, medp_result):
+        dict = {}
+        dict["gene_id"] = self.gene_id
+        dict["overall"] = medp_result.overall
+        dict["row"] = medp_result.row.tolist()
+        dict["col"] = medp_result.col.tolist()
+        dict["residuals"] = medp_result.residuals.tolist()
+        self.med_polish_results = dict
     
     def headList(self):
         list = ['Gene ID', 'Gene Symbol', 'Gene Name', 'Strand', 'Chr', 'Start', 

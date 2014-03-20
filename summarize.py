@@ -34,6 +34,7 @@ import csv
 import zipfile
 import operator
 import numpy as np
+import json
 from datetime import datetime
 
 import medpolish as mp
@@ -78,7 +79,8 @@ def usage():
         sys.argv[0], "[OPTIONS] -p <probes.tsv> -s <samples.tsv> -d <data.tsv> (2nd form)\n",\
         "OPTIONS:\n", \
         "    -g, --group    how to group probe sets, options are 'probe', 'gene' (default)\n\n",\
-        "    -i, --idcol    the name of the unique probe id column.  if not provided assumes 'id'\n\n",\
+        "    -e, --extra    generate an additional json file containing extra median polish results.\n",\
+        "                   This option only works with gene grouping, otherwise median polish not run.\n\n",\
         "    -h, --help     return this message\n\n", \
         "    -l, --log      same as verbose but sends diagnostics to desnp.log\n\n", \
         "    -o, --out      the name of the output file the results will go to\n\n",\
@@ -124,6 +126,7 @@ def getProbes(probe_fd):
         # skip header
         if first:
             header = line
+            logging.debug("Header " + str(header))
             psi_col = header.index(PROBE_SET_COL_NAME)
             id_col = header.index(PROBE_ID_COL_NAME)
             first = False
@@ -299,6 +302,7 @@ def groupProbesetsByGene(probes, samples):
         matrix = grouping.getProbeNPMatrix()
         medp_result = mp.adjustedMedpolish(matrix)
         grouping.setIntensities(medp_result.col)
+        grouping.setMedPolishResults(medp_result)
         groups_processed += 1
         if verbose:
             if operator.mod(groups_processed, 1000) == 0:
@@ -341,11 +345,11 @@ Usage of this program can be found in program header and by running:
   sample columns.
 """
 def main():
-    global PROBE_FILE, SAMPLE_FILE, DATA_FILE, PROBE_ID_COL_NAME, verbose, g_probe_ids, g_group
+    global PROBE_FILE, SAMPLE_FILE, DATA_FILE, verbose, g_probe_ids, g_group
     try:
         optlist, args = getopt.getopt(sys.argv[1:],
-                                      'g:i:hlo:vz:p:s:d:',
-                                      ['group=','idcol=','help','log','out=','verbose','zip=','probe=','sample=','data='])
+                                      'g:ehlo:vz:p:s:d:',
+                                      ['group=','extra','help','log','out=','verbose','zip=','probe=','sample=','data='])
     except getopt.GetoptError, exc:
         # print help info
         usage()
@@ -361,6 +365,7 @@ def main():
     log     = False
     input_file_name = ""
     out_file_name   = ""
+    extra_output = False
 
     #  See if desnp.conf file exists
     if os.path.exists("desnp.conf") and os.path.isfile("desnp.conf"):
@@ -379,8 +384,6 @@ def main():
             PROBE_FILE = parameters["FILTERED_PROBE_FILE"]
         if parameters.has_key("DATA_FILE"):
             DATA_FILE = parameters["DATA_FILE"]
-        if parameters.has_key("PROBE_ID_COL_NAME"):
-            PROBE_ID_COL_NAME = parameters["PROBE_ID_COL_NAME"]
 
     zip_used = False
     nonzip_used = False
@@ -397,8 +400,8 @@ def main():
                                  g_group + "\n\n")
                 usage()
                 sys.exit(1)
-        elif opt in ("-i", "--idcol"):
-            PROBE_ID_COL_NAME = arg
+        elif opt in ("-e", "--extra"):
+            extra_output = True
         elif opt in ("-l", "--log"):
             log = True
         elif opt in ("-z", "--zip"):
@@ -585,11 +588,17 @@ def main():
             logging.debug("sorting groupings took " + str(c))
             first=True
             a = datetime.now()
+            medpol_groupings = []
             for grouping in groupings:
                 if first:
                     writer.writerow(grouping.headList())
                     first = False
                 writer.writerow(grouping.asList())
+                if extra_output:
+                    medpol_groupings.append(grouping.med_polish_results)
+            if extra_output:
+                md = open("median_polish_by_group.json",'w')
+                md.write(json.dumps(medpol_groupings))
             b = datetime.now()
             c = b - a
             logging.debug("writing groupings took " + str(c))
