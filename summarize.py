@@ -334,8 +334,8 @@ def main():
     global PROBE_FILE, SAMPLE_FILE, DATA_FILE, PROBE_ID_COL_NAME, verbose, g_probe_ids, g_group
     try:
         optlist, args = getopt.getopt(sys.argv[1:],
-                                      'g:ehlo:vz:p:s:d:',
-                                      ['group=','extra','help','log','out=','verbose','zip=','probe=','sample=','data='])
+                                      'g:i:ehlo:vz:p:s:d:',
+                                      ['group=','idcol=','extra','help','log','out=','verbose','zip=','probe=','sample=','data='])
     except getopt.GetoptError, exc:
         # print help info
         usage()
@@ -394,6 +394,8 @@ def main():
                                  g_group + "\n\n")
                 usage()
                 sys.exit(1)
+        elif opt in ("-i", "--idcol"):
+            PROBE_ID_COL_NAME = arg
         elif opt in ("-e", "--extra"):
             extra_output = True
         elif opt in ("-l", "--log"):
