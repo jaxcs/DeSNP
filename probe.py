@@ -474,12 +474,15 @@ class ProbeSet(object):
         # have them
         if len(self.intensities) > 0:
             try:
-                value += self.intensities
+                value += list(self.intensities)
             except ValueError, exc:
+                print "An 'ValueError' exception has occured..."
                 print "'" + str(value) + "'"
                 print str(self.gene_id) + "," + str(self.symbol) + "," + str(self.chromosome)
+                print type(self.intensities)
+                print len(self.intensities)
                 print "'" + str(self.intensities) + "'" 
-                print exc.msg
+                print exc.message
                 sys.exit(1)           
         return value
         

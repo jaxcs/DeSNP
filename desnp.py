@@ -425,26 +425,6 @@ def deSNP(probe, probe_snp_list, strains, probe_writer, rej_writer, vcf=False):
         probe_writer.writerow(probe.asList())
         written_probes += 1
 
-"""
-zipResults()
-
-Add our new filtered probe file and probes with snps between strains
-into the zip source file we received.
-"""
-def zipResults(zip_source_file, probe_file, rej_file):
-    #  Take the input zip,
-    src_zip = None
-    if zipfile.is_zipfile(zip_source_file):
-        src_zip = zipfile.ZipFile(zip_source_file, 'a')
-    else:
-        logging.error(zip_source_file + " is not a valid zip file!")
-        sys.exit(1)
-        
-    src_zip.write(probe_file)
-    src_zip.write(rej_file)
-    if verbose:
-        logging.info("Added files: " + probe_file + " and " + rej_file + \
-                   " to zip " + zip_source_file)
 
 """
 main() is the entry point to the program.
@@ -724,10 +704,6 @@ def main():
     
     writer_fd.close()
     rej_fd.close()
-    if zipped:
-        zipResults(input_file_name, out_file_name, rej_file_name)
-        os.remove(out_file_name)
-        os.remove(rej_file_name)
         
     if verbose:
         logging.info("finished processing at: " + time.strftime("%H:%M:%S") +
