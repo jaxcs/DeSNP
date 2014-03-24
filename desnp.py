@@ -580,7 +580,7 @@ def main():
         
     if zipped and ',' == delim:
         logging.error("Zipped probe file (-z, --zipped) option " +
-                         "assumes the probe.tsv file is tab delimited! Cannot " +
+                         "assumes the probes.tsv file is tab delimited! Cannot " +
                          "use -c, --comma option.")
         sys.exit(1)
 
