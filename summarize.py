@@ -82,6 +82,7 @@ def usage():
         "    -e, --extra    generate an additional json file containing extra median polish results.\n",\
         "                   This option only works with gene grouping, otherwise median polish not run.\n\n",\
         "    -h, --help     return this message\n\n", \
+        "    -i, --idcol    the name of the unique probe id column.  if not provided assumes 'id'\n\n",\
         "    -l, --log      same as verbose but sends diagnostics to desnp.log\n\n", \
         "    -o, --out      the name of the output file the results will go to\n\n",\
         "    -v, --verbose  show informational messages\n\n",\
