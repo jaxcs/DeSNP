@@ -70,10 +70,11 @@ PROBE_ID_COL_NAME  = "id"
 SAMPLE_COL_NAME = "sampleid"
 SAMPLE_COL_NAME_ALT = "Sample"
 
-"""
-usage() method prints valid parameters to program.
-"""
+
 def usage():
+    """
+    usage() method prints valid parameters to program.
+    """
     print "Usage: \n    ", sys.argv[0],\
         "[OPTIONS] -z <probes.zip> (1st form)\n    ",\
         sys.argv[0], "[OPTIONS] -p <probes.tsv> -s <samples.tsv> -d <data.tsv> (2nd form)\n",\
@@ -95,12 +96,13 @@ def usage():
         "    -d, --data     The matix of intensity data (don't use with -z)\n\n",\
         "    -s, --sample   The design file containing the samples (don't use with -z)\n\n"
 
-"""
-quantnorm() is a method for doing quantile normalization.
-It takes a numpy matrix and does quantile normalization of the matrix.
-Returns the normalized matrix
-"""
+
 def quantnorm(x):
+    """
+    quantnorm() is a method for doing quantile normalization.
+    It takes a numpy matrix and does quantile normalization of the matrix.
+    Returns the normalized matrix
+    """
     logging.debug(x)
     rows, cols = x.shape
     sortIndexes = np.argsort(x, axis=0)
@@ -108,13 +110,13 @@ def quantnorm(x):
         currIndexes = sortIndexes[row, :]
         x[currIndexes, range(cols)] = np.median(x[currIndexes, range(cols)])
 
-"""
-Takes a file descriptor for a probe file.  Assumes file is delimited by tabs.  
-Makes the assumption that the probe set id column is "ProbeSet ID" and that the
-probe id column is "id".  Does not assume column order, but uses these two fields to extract
-information.  Returns a dictionary of Probe objects.
-"""
 def getProbes(probe_fd):
+    """
+    Takes a file descriptor for a probe file.  Assumes file is delimited by tabs.
+    Makes the assumption that the probe set id column is "ProbeSet ID" and that the
+    probe id column is "id".  Does not assume column order, but uses these two fields to extract
+    information.  Returns a dictionary of Probe objects.
+    """
     global g_probe_ids
     probes = {}
     reader = csv.reader(probe_fd, delimiter="\t")
@@ -165,11 +167,12 @@ def getProbes(probe_fd):
         logging.info(str(dropped_no_start_end) + "  probes dropped because no gene start/end provided.")
     return probes
 
-"""
-Takes the sample file descriptor and returns a list of sample names.  It is assumed the
-sample names are in the column "sampleid" or "Sample"
-"""
+
 def getSampleNames(sample_fd):
+    """
+    Takes the sample file descriptor and returns a list of sample names.  It is assumed the
+    sample names are in the column "sampleid" or "Sample"
+    """
     reader = csv.reader(sample_fd, delimiter="\t")
     samples = []
     first = True
@@ -191,11 +194,11 @@ def getSampleNames(sample_fd):
             samples.append(line[sample_col])
     return samples
 
-"""
-Takes the map of probe objects and a file descriptor for the matrix of intensity values
-and adds these intensity values to the appropriate probe.
-"""
 def addProbeData(probes, data_fd):
+    """
+    Takes the map of probe objects and a file descriptor for the matrix of intensity values
+    and adds these intensity values to the appropriate probe.
+    """
     keys = probes.keys()
     reader = csv.reader(data_fd, delimiter="\t")
     first = True
@@ -225,11 +228,11 @@ def addProbeData(probes, data_fd):
     if verbose:
         logging.info( "Updated " + str(updated) + " probes with intensity data")
 
-"""
-Will take the dictionary of probes and will return a matrix of intensity values
-probes x samples
-"""
 def getIntensityMatrix(probes):
+    """
+    Will take the dictionary of probes and will return a matrix of intensity values
+    probes x samples
+    """
     data = []
     row_length = 0
     row_num = 0
@@ -257,12 +260,12 @@ def getIntensityMatrix(probes):
     y = np.array(x, dtype=np.int32)
     return y
 
-"""
-Takes the Dictionary of probes and the list of samples and groups them
-by gene.  It uses median polish to give only one value per sample per grouping.
-The new grouped matrix is returned.
-"""
 def groupProbesetsByGene(probes, samples):
+    """
+    Takes the Dictionary of probes and the list of samples and groups them
+    by gene.  It uses median polish to give only one value per sample per grouping.
+    The new grouped matrix is returned.
+    """
     groupings = None
     # Currently we are only grouping by Gene.  If we add another level of 
     # Grouping later we should either break out in another function, or
@@ -320,18 +323,18 @@ def groupProbesetsByGene(probes, samples):
     return groupings
 
 
-"""
-main() is the entry point to the program.
-Usage of this program can be found in program header and by running:
-  ./desnp -h
-  
-  First pass we'll assume that we are processing for only the probes in the
-  "probes.tsv" file.
-
-  Also requiring that the samples.tsv file be present for assigning names for
-  sample columns.
-"""
 def main():
+    """
+    main() is the entry point to the program.
+    Usage of this program can be found in program header and by running:
+      ./desnp -h
+
+      First pass we'll assume that we are processing for only the probes in the
+      "probes.tsv" file.
+
+      Also requiring that the samples.tsv file be present for assigning names for
+      sample columns.
+    """
     global PROBE_FILE, SAMPLE_FILE, DATA_FILE, PROBE_ID_COL_NAME, verbose, g_probe_ids, g_group
     try:
         optlist, args = getopt.getopt(sys.argv[1:],

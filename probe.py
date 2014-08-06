@@ -21,7 +21,8 @@ import numpy as np
 
 
 def probeAttribute(p, value):
-    """ Method that maps input column names with setter methods in Probe
+    """
+    Method that maps input column names with setter methods in Probe
     Supported Column Names:
     'id'        - Unique Identifier for the probe
     'Probe ID'  - Probe ID as defined by microarray platform
@@ -485,6 +486,4 @@ class ProbeSet(object):
                 print exc.message
                 sys.exit(1)           
         return value
-        
-                
-        
+

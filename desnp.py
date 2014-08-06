@@ -28,6 +28,7 @@ OPTIONS:
     -g, --gzipsnp  the gzipped snp file.  This requires an associated .tbi tabix
                    index file to be present in the same location
     -h, --help     return this message
+    -i, --idcol    the name of the unique probe id column.  if not provided assumes 'id'
     -l, --log      same as verbose but sends diagnostics to desnp.log
     -o, --out      the name of the output file the results will go to
     -r, --returnstrains Can be used in conjunction with -g to get the list of 
@@ -106,10 +107,9 @@ CHRS = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16',
 
 
 
-"""
-usage() method prints valid parameters to program.
-"""
+
 def usage():
+    """ usage() method prints valid parameters to program. """
     print "Usage: \n    ", sys.argv[0],\
         "[OPTIONS] -f <probes.txt> -g <snps.gz> -s <strains> (1st form)\n    ",\
         sys.argv[0], "[OPTIONS] -z <probes.zip> -g <snps.gz> -s <strains> (2nd form)\n",\
@@ -138,16 +138,17 @@ def usage():
 
 
 
-"""
-getProbeFDFromZip()  unzips the input file and returns the probe file
 
-This function assumes that the zipped input file is a result of a 'MooseDB'
-query/download that returns a zip containing multiple files.  One of which is
-the set of probes the user has requested in a file named 'probes.tsv'.  
-
-Returns a file descriptor to read the file named 'probes.tsv'
-"""
 def getProbeFDFromZip(input_file_name):
+    """
+    getProbeFDFromZip()  unzips the input file and returns the probe file
+
+    This function assumes that the zipped input file is a result of a 'MooseDB'
+    query/download that returns a zip containing multiple files.  One of which is
+    the set of probes the user has requested in a file named 'probes.tsv'.
+
+    Returns a file descriptor to read the file named 'probes.tsv'
+    """
     if zipfile.is_zipfile(input_file_name):
         zip = zipfile.ZipFile(input_file_name, 'r')
         fd = zip.open(PROBE_FILE,'r')
@@ -157,16 +158,17 @@ def getProbeFDFromZip(input_file_name):
         sys.exit(1)
 
 
-"""
-getSampleListFromVCF()  Gets the list of valid sample/strains from a VCF file
 
-Takes the name of the gzipped vcf file as a parameter.  Assumes that in
-the VCF format, that the first line with only one '#' is the header line.
-Also assumes that the 9th column is the first one with a sample name.
-
-Returns a list of  strain names
-"""
 def getSampleListFromVCF(snp_file_name):
+    """
+    getSampleListFromVCF()  Gets the list of valid sample/strains from a VCF file
+
+    Takes the name of the gzipped vcf file as a parameter.  Assumes that in
+    the VCF format, that the first line with only one '#' is the header line.
+    Also assumes that the 9th column is the first one with a sample name.
+
+    Returns a list of  strain names
+    """
     gz = gzip.open(snp_file_name, 'r')
     line = gz.readline()
     strains = []
@@ -186,18 +188,19 @@ def getSampleListFromVCF(snp_file_name):
                      str(strains))
     return strains
 
-"""
-getSampleListFromCGD()  Gets list of valid sample/strains from CGD strain file
 
-Takes the name of the gzipped cgd strain file as a parameter.  Assumes that in
-the CGD Strain format, the first line is a header.
-Also assumes that the 5th column is the first one with a sample name, and
-that every other column after that is a strain and that the alternating
-columns are a confidence score.
-
-Returns a list of  strain names
-"""
 def getSampleListFromCGD(snp_file_name):
+    """
+    getSampleListFromCGD()  Gets list of valid sample/strains from CGD strain file
+
+    Takes the name of the gzipped cgd strain file as a parameter.  Assumes that in
+    the CGD Strain format, the first line is a header.
+    Also assumes that the 5th column is the first one with a sample name, and
+    that every other column after that is a strain and that the alternating
+    columns are a confidence score.
+
+    Returns a list of  strain names
+    """
     gz = gzip.open(snp_file_name, 'r')
     line = gz.readline()
     strains = []
@@ -217,21 +220,22 @@ def getSampleListFromCGD(snp_file_name):
                      str(strains))
     return strains
 
-"""
-validateStrains()  validates strains of interest against snp file.
 
-Takes a string of strain names seperated by ":", a gzipped snp file, and
-a boolean flag as to whether or not that file is VCF format.
-
-Checks to see if the strains requested are avaiable in the snp file.
-
-If they are, a dict of strains is returned with the key=strain name and
-value=column in snp file.
-
-If any are not, an error is thrown with appropriate message and program
-exits.
-"""
 def validateStrains(strains_string, snp_file_name, vcf=False):
+    """
+    validateStrains()  validates strains of interest against snp file.
+
+    Takes a string of strain names seperated by ":", a gzipped snp file, and
+    a boolean flag as to whether or not that file is VCF format.
+
+    Checks to see if the strains requested are avaiable in the snp file.
+
+    If they are, a dict of strains is returned with the key=strain name and
+    value=column in snp file.
+
+    If any are not, an error is thrown with appropriate message and program
+    exits.
+    """
     validSamples = None
     if vcf:
         validSamples = getSampleListFromVCF(snp_file_name)
@@ -249,23 +253,25 @@ def validateStrains(strains_string, snp_file_name, vcf=False):
     return strain_dict
 
 
-"""
-initSNPReader(snp_file_name)  returns a TabixFile to be used for searching
 
-"""
 def initSNPReader(snp_file_name):
+    """
+    Initializes the SNP Reader as a Tabix File
+    returns a TabixFile to be used for searching
+    """
     tb = pysam.Tabixfile(snp_file_name,'r')
     return tb
 
-"""
-getSNPList()  returns the list of snps found in probe region
 
-This function takes a probe, and a snp file.
-
-The function returns a list of snps, if any are found in the region
-covered by this probe.  If no snps are found "None" is returned.
-"""
 def getSNPList(probes, tabixFile):
+    """
+    getSNPList()  returns the list of snps found in probe region
+
+    This function takes a probe, and a snp file.
+
+    The function returns a list of snps, if any are found in the region
+    covered by this probe.  If no snps are found "None" is returned.
+    """
     regions = []
     for probe in probes:
         if probe.probe_start > -1:
@@ -275,33 +281,34 @@ def getSNPList(probes, tabixFile):
     return regions
 
 
-"""
-deSNP  Take a probes list of snps and sees if any are in the set of strains
 
-This function takes the probe,
-the list of snps found in the region of a probe,
-the list of strains of interest,
-the writer for outputing Probes,
-the writer for outputing probes rejected with a variance
-and a boolean whether or not the snps are in vcf format
-
-If a snp to the reference genome is found to exist in any of the strains
-of interest this entire probe is "DeSNPed", meaning dropped from the set
-of interest.  Probes that are DeSNPed are written to the rej_writer with an
-extra column containing the position and strain(s) that had the snp.  The
-probes with no SNPs between strains are written to the probe_writer.
-
-The "strain/SNP" column of the rejected file is formated:
-   strain1;strain2;strain3;...;
- for the header and:
-   0:1;1;;...;0:2
- where under each strain is the colon separated list of positions
- with a SNP for that strain, empty string where there are no SNPs
- for the strain.
-
-There is no return for this method.
-"""
 def deSNP(probe, probe_snp_list, strains, probe_writer, rej_writer, vcf=False):
+    """
+    deSNP  Take a probes list of snps and sees if any are in the set of strains
+
+    This function takes the probe,
+    the list of snps found in the region of a probe,
+    the list of strains of interest,
+    the writer for outputing Probes,
+    the writer for outputing probes rejected with a variance
+    and a boolean whether or not the snps are in vcf format
+
+    If a snp to the reference genome is found to exist in any of the strains
+    of interest this entire probe is "DeSNPed", meaning dropped from the set
+    of interest.  Probes that are DeSNPed are written to the rej_writer with an
+    extra column containing the position and strain(s) that had the snp.  The
+    probes with no SNPs between strains are written to the probe_writer.
+
+    The "strain/SNP" column of the rejected file is formated:
+       strain1;strain2;strain3;...;
+     for the header and:
+       0:1;1;;...;0:2
+     where under each strain is the colon separated list of positions
+     with a SNP for that strain, empty string where there are no SNPs
+     for the strain.
+
+    There is no return for this method.
+    """
     global written_probes, written_snps
     # snpmap holds the list of snps found by strain
     snpmap = {}
@@ -426,12 +433,13 @@ def deSNP(probe, probe_snp_list, strains, probe_writer, rej_writer, vcf=False):
         written_probes += 1
 
 
-"""
-main() is the entry point to the program.
-Usage of this program can be found in program header and by running:
-  ./desnp -h
-"""
+
 def main():
+    """
+    main() is the entry point to the program.
+    Usage of this program can be found in program header and by running:
+      ./desnp -h
+    """
     global PROBE_FILE, FILTERED_PROBE_FILE, SNP_PROBE_FILE, PROBE_ID_COL_NAME, verbose, written_probes
     #
     # TODO:  Make it so all command-line parameters can be passed, alternatively
