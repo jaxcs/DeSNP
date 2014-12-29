@@ -513,6 +513,7 @@ class Summary(object):
             if len(line) == 1:
                 logging.error("Only 1 column in line " + str(lines_read) +
                     ".  May be using wrong delimiter.")
+                logging.error("Line: '" + str(line) + "'")
                 sys.exit(1)
             probe_id = line[0]
             try:
