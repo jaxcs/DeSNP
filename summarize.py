@@ -49,7 +49,12 @@ __author__="dave.walton@jax.org"
 __date__="$Feb 10, 2012 08:00:00 AM$"
 
 
+class SummarizationError(Exception):
+    def __init__(self, value):
+        self.value = value
 
+    def __str__(self):
+        return repr(self.value)
 
 def usage():
     """
@@ -155,7 +160,7 @@ class Summary(object):
                 self.DATA_FILE = parameters["DATA_FILE"]
             if parameters.has_key("PROBE_ID_COL_NAME"):
                 self.PROBE_ID_COL_NAME = parameters["PROBE_ID_COL_NAME"]
-        #  If an id column is passed in takes precidence over config
+        #  If an id column is passed in takes precedence over config
         if id_col != "":
             self.PROBE_ID_COL_NAME = id_col
 
@@ -213,8 +218,9 @@ class Summary(object):
     def process(self):
 
         if not self.initialized:
-            logging.error("Cannot process until Summary fully initialized!")
-            return 1
+            msg = "Cannot process until Summary fully initialized!"
+            logging.error(msg)
+            raise SummarizationError(msg)
 
         if self.verbose:
             logging.info("started processing at: " + time.strftime("%H:%M:%S"))
@@ -237,30 +243,31 @@ class Summary(object):
                 except IOError:
                     logging.error("Error: Problem trying to open probe file: " +
                                   self.PROBE_FILE)
-                    return 1
+                    raise
             else:
                 try:
                     probe_fd = zip.open(self.PROBE_FILE, 'r')
                 except KeyError:
                     logging.error("File " + self.PROBE_FILE + " does not exist " +
                                   "in zip: " + self.input_file_name)
-                return 1
+                    raise
             try:
                 data_fd = zip.open(self.DATA_FILE,'r')
             except KeyError:
                 logging.error("Error: file data.tsv does not exist in zip: " +
                               self.input_file_name)
-                return 1
+                raise
             try:
                 sample_fd = zip.open(self.SAMPLE_FILE, 'r')
             except KeyError:
                 logging.error("Error: file samples.tsv does not exist in zip: " +
                                 self.input_file_name)
-                return 1
+                raise
         #  If we get here, zip was provided but wasn't a zip
         elif self.zip_used:
-            logging.error(self.input_file_name + " is not a valid zip file!")
-            return 1
+            msg = self.input_file_name + " is not a valid zip file!"
+            logging.error(msg)
+            raise SummarizationError(msg)
         #  No probe file descriptor set yet, let's try getting from local dir
         if not probe_fd:
             try:
@@ -268,7 +275,7 @@ class Summary(object):
             except IOError:
                 logging.error("Error: Problem trying to open probe file: " +
                               self.PROBE_FILE)
-                return 1
+                raise
         #  No data file descriptor set yet, let's try getting from local dir
         if not data_fd:
             try:
@@ -276,7 +283,7 @@ class Summary(object):
             except IOError:
                 logging.error("Error: Problem trying to open data file: " +
                               self.DATA_FILE)
-                return 1
+                raise
         #  No sample file descriptor set yet, let's try getting from local dir
         if not sample_fd:
             try:
@@ -284,7 +291,7 @@ class Summary(object):
             except IOError:
                 logging.error("Error: Problem trying to open sample file: " +
                               self.SAMPLE_FILE)
-                return 1
+                raise
 
         #  Default is that writer will write to standard out
         writer_fd = None
@@ -428,8 +435,9 @@ class Summary(object):
                     id_col = header.index(self.PROBE_ID_COL_NAME)
                     logging.debug("ID COL IS " + str(id_col))
                 else:
-                    logging.error("ID column name " + self.PROBE_ID_COL_NAME + " does not exist in probe input file!")
-                    sys.exit(1)
+                    msg = "ID column name " + self.PROBE_ID_COL_NAME + " does not exist in probe input file!"
+                    logging.error(msg)
+                    raise SummarizationError(msg)
                 first = False
                 continue
             probe = None
@@ -478,12 +486,13 @@ class Summary(object):
                         sample_col = line.index(self.SAMPLE_COL_NAME_ALT)
                     except ValueError:
                         # Fail, there required column name is missing
-                        logging.error("The sample file, must contain a column '"
-                                      + self.SAMPLE_COL_NAME + "' or '" +
-                                      self.SAMPLE_COL_NAME_ALT + "'.  This " +
-                                      "column should contain the names for the " +
-                                      "sample column headers in the summarized output file.")
-                        sys.exit(1)
+                        msg = "The sample file, must contain a column '"\
+                                      + self.SAMPLE_COL_NAME + "' or '" +\
+                                      self.SAMPLE_COL_NAME_ALT + "'.  This " +\
+                                      "column should contain the names for the " +\
+                                      "sample column headers in the summarized output file."
+                        logging.error(msg)
+                        raise SummarizationError(msg)
                 first = False
             else:
                 samples.append(line[sample_col])
@@ -511,10 +520,11 @@ class Summary(object):
             if len(line) == 0:
                 continue
             if len(line) == 1:
-                logging.error("Only 1 column in line " + str(lines_read) +
-                    ".  May be using wrong delimiter.")
+                msg = "Only 1 column in line " + str(lines_read) +\
+                    ".  May be using wrong delimiter."
+                logging.error(msg)
                 logging.error("Line: '" + str(line) + "'")
-                sys.exit(1)
+                raise SummarizationError(msg)
             probe_id = line[0]
             try:
                 probes[probe_id].setIntensities(line[1:])
@@ -551,9 +561,10 @@ class Summary(object):
             data.append(probes[probe_id].intensities)
             row_num = row_num + 1
         if not success:
-            logging.error("Cannot proceed with summarization.  Exiting...")
-            sys.stderr.write("Cannot proceed with summarization.  Exiting...\n")
-            sys.exit(1)
+            msg = "Cannot proceed with summarization.  Exiting..."
+            logging.error(msg)
+            sys.stderr.write(msg + "\n")
+            raise SummarizationError(msg)
         x = np.array(data,dtype=np.float)
         y = np.array(x, dtype=np.int32)
         return y
@@ -709,15 +720,15 @@ def main():
         usage()
         sys.exit(1)
 
-    success = summary.process()
-
-    #  Success is like a unix return code.  0 is good, 1 is bad
-    if success == 0:
+    try:
+        summary.process()
         logging.info("Summarization Completed Successfully")
         sys.exit(0)
-    else:
-        logging.info("Summarization did not run to completion")
+    except Exception as detail:
+        logging.info("Summarization did not run to completion " + str(detail))
         sys.exit(1)
+
+
 
 
 if __name__ == "__main__":
