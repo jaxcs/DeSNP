@@ -73,6 +73,12 @@ from probe import parseProbesFromLine
 __author__="dave.walton@jax.org"
 __date__="$Jan 09, 2012 01:32:00 PM$"
 
+class DeSNPError(Exception):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
 
 def usage():
     """ usage() method prints valid parameters to program. """
@@ -265,11 +271,10 @@ class DeSNP(object):
 
     def process(self):
         if not self.initialized:
-            logging.warning("Cannot process until Probe and SNP files and " +
-                            "list of strains have all be set.")
-            return 1
-        else:
-            logging.info("Self.initialized '" + str(self.initialized) + "'")
+            msg = "Cannot process until Probe and SNP files and " +\
+                            "list of strains have all be set."
+            logging.warning(msg)
+            raise DeSNPError(msg)
 
         if self.verbose:
             logging.info("\nstarted processing at: " + time.strftime("%H:%M:%S")  +
@@ -362,8 +367,9 @@ class DeSNP(object):
                 if tmp_probes[0].chromosome is None:
                     continue
                 else:
-                    logging.warning("Chr " + str(tmp_probes[0].chromosome) + " not supported.  " +
-                                    "Keeping probe... " + str(tmp_probes[0].id))
+                    #  Chromosome not supported, keep it in probe set...
+                    #logging.warning("Chr " + str(tmp_probes[0].chromosome) + " not supported.  " +
+                    #                "Keeping probe... " + str(tmp_probes[0].id))
                     writer.writerow(tmp_probes[0].asList())
                     self.written_probes += 1
                     continue
@@ -399,13 +405,11 @@ class DeSNP(object):
                          " probes without snps between strains = " + str(self.written_probes) \
                         + " probes with snps between strains = " + str(self.written_snps))
 
-        return 0
-
-
     def returnStrains(self):
         if not self.snp_file_name:
-            logging.error("Cannot return strains without a snp file")
-            return 1
+            msg = "Cannot return strains without a snp file"
+            logging.error(msg)
+            raise DeSNPError(msg)
         strains = []
         if self.vcf:
             strains = self.getSampleListFromVCF(self.snp_file_name)
@@ -429,8 +433,9 @@ class DeSNP(object):
             fd = zip.open(self.PROBE_FILE,'r')
             return fd
         else:
-            logging.error(input_file_name + " is not a valid zip file!")
-            sys.exit(1)
+            msg = input_file_name + " is not a valid zip file!"
+            logging.error(msg)
+            raise DeSNPError(msg)
 
 
 
@@ -522,9 +527,10 @@ class DeSNP(object):
             try:
                 strain_dict[strain] = validSamples.index(strain)
             except ValueError:
-                logging.error("Strain " + strain + " not in valid set.")
+                msg = "Strain " + strain + " not in valid set."
+                logging.error(msg)
                 logging.error("   Valid strains include" + ":".join(validSamples))
-                sys.exit(1)
+                raise DeSNPError(msg)
         return strain_dict
 
 
@@ -811,13 +817,13 @@ def main():
         usage()
         sys.exit(1)
 
-    success = desnp.process()
-
-    #  Success is like a unix return code.  0 is good, 1 is bad
-    if success == 0:
+    try:
+        success = desnp.process()
         logging.info("DeSNP Completed Successfully")
-    else:
-        logging.info("DeSNP did not run to completion")
+        sys.exit(0)
+    except Exception as detail:
+        logging.error("DeSNP did not run to completion " + str(detail))
+        sys.exit(1)
 
 
 if __name__ == "__main__":
