@@ -131,7 +131,7 @@ class Summary(object):
     def __init__(self, input_file_name, out_file_name, g_group='gene',
                  verbose=False, delim='\t',zip_used=False, log=False,
                  extra_output=False, probe_file=None, sample_file= None,
-                 data_file=None, id_col=""):
+                 data_file=None, id_col="", sample_col=""):
 
         self.input_file_name = input_file_name
         self.out_file_name = out_file_name
@@ -163,6 +163,8 @@ class Summary(object):
         #  If an id column is passed in takes precedence over config
         if id_col != "":
             self.PROBE_ID_COL_NAME = id_col
+        if sample_col != "":
+            self.SAMPLE_COL_NAME = sample_col
 
         #  The probe file is a special case.  If a zip file is used AND a probe
         #  file name is given, that indicates the user wants to read the
