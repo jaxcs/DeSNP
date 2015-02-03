@@ -66,17 +66,21 @@ def probeAttribute(p, value):
            'probe_id':p.setProbeId,
            'probeset id':p.setProbeSetId,
            'probe start':p.setProbeStart,
+           'probe_start':p.setProbeStart,
            'start_position':p.setProbeStart,
            'probe end':p.setProbeEnd,
+           'probe_end':p.setProbeEnd,
            'end_position':p.setProbeEnd,
            'location':p.setLocation,
            'genomic_position':p.setLocation,
            'position':p.setLocation,
            'sequence':p.setSequence,
+           'probe_sequence':p.setSequence,
            'mgi id':p.setGeneId,
            'mgi_id':p.setGeneId,
            'gene id':p.setGeneId,
            'ensembl_gene_id':p.setGeneId,
+           #'external_id':p.setGeneId,
            'mgi symbol':p.setSymbol,
            'mgi_symbol':p.setSymbol,
            'symbol':p.setSymbol,
@@ -88,9 +92,14 @@ def probeAttribute(p, value):
            'gene_position':p.setGeneLocation,
            'chr':p.setChr,
            'chromosome':p.setChr,
+           'probe_chrom':p.setChr,
+           'gene_chromosome':p.setChr,
            'start':p.setStart,
+           'gene_start':p.setStart,
            'end':p.setEnd,
-           'strand':p.setStrand}[value]
+           'gene_end':p.setEnd,
+           'strand':p.setStrand,
+           'gene_strand':p.setStrand}[value]
 
 
 
