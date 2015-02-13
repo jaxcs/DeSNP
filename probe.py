@@ -253,6 +253,8 @@ class Probe(object):
         
     def setProbeId(self,value):
         self.probe_id = value
+        if not self.id:
+            self.id = self.probe_id
         
     def setProbeSetId(self,value):
         self.probeset_id = value
