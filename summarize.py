@@ -79,7 +79,8 @@ def usage():
         "                     samples.tsv\n\n",\
         "    -p, --probe    The file containing the probes to be summarized (don't use with -z)\n\n",\
         "    -d, --data     The matix of intensity data (don't use with -z)\n\n",\
-        "    -s, --sample   The design file containing the samples (don't use with -z)\n\n"
+        "    -s, --sample   The design file containing the samples (don't use with -z)\n\n",\
+        "    -c, --samplecol The column in the design file containing our unique sample identifier/name\n\n"
 
 
 def quantnorm(x):
@@ -130,7 +131,7 @@ class Summary(object):
 
     def __init__(self, input_file_name, out_file_name, g_group='gene',
                  verbose=False, delim='\t',zip_used=False, log=False,
-                 extra_output=False, probe_file=None, sample_file= None,
+                 extra_output=False, probe_file=None, sample_file=None,
                  data_file=None, id_col="", sample_col=""):
 
         self.input_file_name = input_file_name
@@ -652,8 +653,8 @@ def main():
     #global PROBE_FILE, SAMPLE_FILE, DATA_FILE, PROBE_ID_COL_NAME, verbose, g_probe_ids, g_group
     try:
         optlist, args = getopt.getopt(sys.argv[1:],
-                                      'g:i:ehlo:vz:p:s:d:',
-                                      ['group=','idcol=','extra','help','log','out=','verbose','zip=','probe=','sample=','data='])
+                                      'g:i:ehlo:vz:p:s:d:c:',
+                                      ['group=','idcol=','extra','help','log','out=','verbose','zip=','probe=','sample=','data=','samplecol='])
     except getopt.GetoptError, exc:
         # print help info
         usage()
@@ -671,6 +672,7 @@ def main():
     out_file_name   = ""
     extra_output = False
     id_col = ""
+    sample_col = ""
 
     # If zip not provided user MUST provide all three input files
     zip_used = False
@@ -711,10 +713,12 @@ def main():
             sample_file = arg
         elif opt in ("-d", "--data"):
             data_file = arg
-            
+        elif opt in ("-c", "--samplecol"):
+            sample_col = arg
+
     summary = Summary(input_file_name, out_file_name, g_group, verbose,
                       delim, zip_used, log, extra_output, probe_file,
-                      sample_file, data_file, id_col)
+                      sample_file, data_file, id_col, sample_col)
 
     if not summary.initialized:
         logging.error("Must either provide zip file or you must " +
