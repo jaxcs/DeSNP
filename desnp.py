@@ -88,6 +88,9 @@ def usage():
         "OPTIONS:\n", \
         "    -c, --comma    the probe file is comma delimited\n\n", \
         "    -f, --file     the probe file. This or -z are required\n\n", \
+        "    --flag         default behavior of DeSNP is to filter out probes with snps and write\n",\
+        "                   them to a separate file.  The --flag option keeps them in one probe file\n",\
+        "                   with an additional column added to identify location and strain of snps\n\n",\
         "    -g, --gzipsnp  the gzipped snp file.  This requires an associated .tbi\n",\
         "                   tabix index file to be present in the same location\n\n",\
         "    -h, --help     return this message\n\n", \
@@ -152,11 +155,12 @@ class DeSNP(object):
     log = False
     vcf = False
     initialized = False
+    flag_probes = False
 
 
     def __init__(self, input_file_name, snp_file_name, strains_string,
                  out_file_name, verbose=False, delim='\t',
-                 zipped=False, log=False, vcf=False, id_col=""):
+                 zipped=False, log=False, vcf=False, id_col="", flag=False):
 
         self.input_file_name = input_file_name
         self.snp_file_name = snp_file_name
@@ -167,6 +171,7 @@ class DeSNP(object):
         self.vcf = vcf
         self.zipped = zipped
         self.delim = delim
+        self.flag_probes = flag
 
         #
         #  If a config file is found in the path, set up defaults
@@ -315,9 +320,14 @@ class DeSNP(object):
         # Set up writer for probes with snps (rejected)
         # This file will contain our probes that were rejected because of
         # variances/SNPs in between our selected strains
-        rej_file_name = self.SNP_PROBE_FILE
-        rej_fd = open(rej_file_name,'w')
-        rej_writer = csv.writer(rej_fd, delimiter=self.delim)
+        rej_fd = None
+        rej_writer = None
+        if not self.flag_probes:
+            rej_file_name = self.SNP_PROBE_FILE
+            rej_fd = open(rej_file_name,'w')
+            rej_writer = csv.writer(rej_fd, delimiter=self.delim)
+        else:
+            rej_writer = writer
 
         snp_reader = self.initSNPReader(self.snp_file_name)
 
@@ -344,7 +354,8 @@ class DeSNP(object):
             if not headers_written:
                 # Write header to filtered file
                 head_list = tmp_probes[0].headList()
-                writer.writerow(head_list)
+                if not self.flag_probes:
+                    writer.writerow(head_list)
                 rej_head = head_list
                 # The "strain/SNP" column of the rejected file is formatted:
                 #   strain1;strain2;strain3;...;strainN
@@ -370,7 +381,10 @@ class DeSNP(object):
                     #  Chromosome not supported, keep it in probe set...
                     #logging.warning("Chr " + str(tmp_probes[0].chromosome) + " not supported.  " +
                     #                "Keeping probe... " + str(tmp_probes[0].id))
-                    writer.writerow(tmp_probes[0].asList())
+                    out_list = tmp_probes[0].asList()
+                    if self.flag_probes:
+                        out_list.append("")
+                    writer.writerow(out_list)
                     self.written_probes += 1
                     continue
             else:
@@ -396,7 +410,8 @@ class DeSNP(object):
         logging.debug("Took " + str(DEBUG_TIME_TEST["deSnp"]) + " to do DeSNPing")
 
         writer_fd.close()
-        rej_fd.close()
+        if rej_fd:
+            rej_fd.close()
 
         if self.verbose:
             logging.info("finished processing at: " + time.strftime("%H:%M:%S") +
@@ -709,7 +724,10 @@ class DeSNP(object):
             self.written_snps += 1
         else:
             # write to probe file
-            probe_writer.writerow(probe.asList())
+            out_list = probe.asList()
+            if self.flag_probes:
+                out_list.append("")
+            probe_writer.writerow(out_list)
             self.written_probes += 1
 
 
@@ -730,7 +748,7 @@ def main():
                                       'cf:g:i:hlo:rs:tvz:',
                                       ['comma','file=','idcol=','gzipsnp=','help',
                                        'log','out=','returnstrains','strains=',
-                                       'tab','vcf=','verbose','zip='])
+                                       'tab','vcf=','verbose','zip=','flag'])
     except getopt.GetoptError, exc:
         # print help info
         usage()
@@ -752,6 +770,7 @@ def main():
     strains_string  = ""
     out_file_name   = ""
     id_col = ""
+    flag  = False
 
     for opt, arg in optlist:
         print "[" + str(opt) + "]"
@@ -793,9 +812,11 @@ def main():
             strains_string = arg
         elif opt == "--vcf":
             vcf = True
+        elif opt == "--flag":
+            flag = True
 
     desnp = DeSNP(input_file_name, snp_file_name, strains_string, out_file_name,
-                  verbose, delim, zipped, log, vcf, id_col)
+                  verbose, delim, zipped, log, vcf, id_col, flag)
 
     if return_strains:
         strains = desnp.returnStrains()
